@@ -290,3 +290,4 @@ assign [class="Google-chrome"] $workspace2
 assign [class="Rhythmbox"] $workspace10
 assign [class="vlc"] $workspace10
 assign [class="netease-cloud-music"] $workspace10
+assign [class="Deadbeef"] $workspace10
