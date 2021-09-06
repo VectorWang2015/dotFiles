@@ -1,0 +1,66 @@
+/*
+  Rofi Custom Theme
+  by Tuxy {2021-09-01}
+*/
+
+* {
+  spacing: 0;
+  text-color: #1a997c;
+  background-color: #2f343f40;
+  font: "JetBrainsMono Nerd Font 20";
+}
+
+window {
+  border: 1px;
+  border-color: #000;
+}
+
+mainbox {
+  border: 1px;
+  border-color: #333;
+}
+
+inputbar {
+  border: 0 0 1px 0;
+  border-color: #333;
+  children: [prompt,entry];
+}
+
+prompt {
+  padding: 10px 8px 5px 10px;
+}
+
+entry {
+  blink: false;
+  padding: 5px;
+  placeholder-color: #444;
+}
+
+listview {
+  lines: 10;
+  padding: 10px;
+  border: 1px 0 0 0;
+  border-color: #000;
+  lines: 15;
+}
+
+// Fixes ListView Item Background Color
+element-icon, element-text {
+  text-color: inherit;
+  background-color: inherit;
+}
+
+element-icon {
+  size: 30px;
+  padding: 0 10px 0 0;
+}
+
+element-text {
+  highlight: underline orange;
+}
+
+element selected {
+  text-color: #CCC;
+}
+
+// EOF: ~/.config/rofi/custom.rasi

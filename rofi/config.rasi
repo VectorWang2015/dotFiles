@@ -1,0 +1,18 @@
+/*
+  Rofi Custom Config
+  by Tuxy {2021-09-01}
+*/
+
+//@theme "custom.rasi"
+
+configuration {
+	width: 20;
+	lines: 15;
+	show-icons: true;
+	theme: "custom";
+	icon-theme: "breath2-dark";
+	combi-modi: "drun,run";
+	max-history-size: 50;
+}
+
+// EOF: ~/.config/rofi/custom.rasi
