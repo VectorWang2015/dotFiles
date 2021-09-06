@@ -283,6 +283,7 @@ mode "$mode_gaps_outer" {
 
 exec konsole
 exec fcitx5
+exec displaycal-apply-profiles
 exec_always feh --bg-scale /home/vectorwang/Pictures/wallpaper-coldripple.jpg
 exec_always picom
 
