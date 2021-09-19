@@ -114,7 +114,7 @@ set $workspace5 "5:  "
 set $workspace6 "6:  "
 set $workspace7 "7:  "
 set $workspace8 "8:  "
-set $workspace9 "9:  "
+set $workspace9 "9:  "
 set $workspace10 "10:  "
 # switch to workspace
 bindsym $mod+1 workspace $workspace1
@@ -292,3 +292,4 @@ assign [class="Rhythmbox"] $workspace10
 assign [class="vlc"] $workspace10
 assign [class="netease-cloud-music"] $workspace10
 assign [class="Deadbeef"] $workspace10
+assign [class="Wine"] $workspace9
