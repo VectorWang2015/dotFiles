@@ -9,6 +9,7 @@
 ```
 ## This is a backup for my i3wm configs and scripts
 * .vimrc: vim config
+* .zshrc: zsh config, from my workstation
 * i3: i3wm configs and i3block configs
 * rofi: rofi configs, including a custom theme
 * scripts: including a lockscreen script and i3block scripts
@@ -16,6 +17,7 @@
 ```
 .
 ├── .vimrc
+├── .zshrc
 ├── i3
 │   ├── config
 │   └── i3blocks.conf
