@@ -11,7 +11,7 @@
 * .vimrc: vim config
 * init.vim: neo vim config
 * .tmux.conf: tmux config
-* .zshrc: zsh config, from my workstation
+* .zshrc: zsh config, from my workstation (see [.zshrc customizations](#zshrc-customizations))
 * i3: i3wm configs and i3block configs
 * rofi: rofi configs, including a custom theme
 * scripts: including a lockscreen script and i3block scripts
@@ -76,3 +76,18 @@
 
 10 directories, 45 files
 ```
+
+## .zshrc customizations
+
+Built on [Oh My Zsh](https://ohmyzsh.org) with the `robbyrussell` theme. Beyond the stock template, it adds:
+
+### Plugins
+* `git`: git aliases and prompt info (Oh My Zsh built-in)
+* `extract`: single `extract <file>` command for any archive type
+* `universalarchive`: `ua <file>` to compress into a chosen archive format
+* `zsh-syntax-highlighting`: fish-like syntax highlighting as you type (external, needs manual install)
+* `zsh-autosuggestions`: history-based command suggestions as you type (external, needs manual install)
+
+### Functions
+* `y`: yazi wrapper — launches yazi, and on exit changes the shell's directory to wherever you last were inside yazi (default `yazi` leaves the shell where it started)
+
