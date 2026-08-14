@@ -1,0 +1,20 @@
+{
+  "name": "dsh-profile-web",
+  "private": true,
+  "dependencies": {
+    "@dsh-external/dsh-ads": "github:Nagi-ovo/dsh-ads",
+    "dsh-plugin-deepeye": "^0.1.1",
+    "dsh-workspace-open": "file:/home/vectorwang/.dsh/plugins/dsh-workspace-open"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "@dsh-external/dsh-ads",
+        "dsh-plugin-deepeye",
+        "dsh-workspace-open"
+      ]
+    }
+  }
+}
