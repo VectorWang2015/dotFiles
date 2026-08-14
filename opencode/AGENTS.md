@@ -5,12 +5,12 @@ They override default agent behavior.
 
 ---
 
-## 1. Authority & Scope
+## 1. Autonomy & Scope
 
-- The agent MUST NOT infer intent beyond what is explicitly stated.
-- When uncertainty exists, the agent MUST ask before acting.
-
-Default mode is **analysis-only**.
+- Do what is explicitly asked; do not infer extra scope or add unrequested
+  features/refactors.
+- Proceed with reasonable assumptions on minor ambiguity. Ask for clarification
+  only when a decision is genuinely ambiguous, irreversible, or high-risk.
 
 ---
 
@@ -18,126 +18,60 @@ Default mode is **analysis-only**.
 
 ### Branching
 
-- The agent MUST NOT work on main branch.
-- Any new feature or experiment MUST be done on a new branch.
-- The agent MUST NOT create or switch branches unless explicitly instructed.
+- Never work directly on `main`/`master`.
+- Do NOT create or switch branches unless explicitly instructed.
+- When instructed to create a branch, use `<type>/<short-description>`:
 
-- If the agent IS explicitly instructed to create a branch,
-  it MUST follow the branch naming convention:
+Allowed branch types: `feat`, `fix`, `docs`, `chore`.
 
-```
-<type>/<short-brief-description>
-```
-
-Allowed branch types include:
-- feat   (new feature)
-- fix    (bug fix)
-- docs   (documentation only)
-- chore  (maintenance / tooling)
-
-Examples:
-- feat/alos-turning-demo
-- fix/heading-wrap-bug
-- docs/experiment-notes
-
----
+Examples: `feat/alos-turning-demo`, `fix/heading-wrap-bug`, `docs/experiment-notes`.
 
 ### Commit
 
-- The agent MUST NOT commit code unless explicitly instructed.
-- The agent MUST NOT amend, squash, or rewrite git history.
-- The agent MUST NOT push to any remote repository.
+- Do NOT commit, amend, squash, rewrite history, or push unless explicitly
+  instructed to do so.
+- When instructed to commit, use Conventional Commits: `type(scope): subject`,
+  with a concise imperative subject.
 
-- If the agent IS explicitly instructed to write a commit message,
-it MUST follow the **Conventional Commits** format:
-
-```
-<type>(<scope>): <subject>
-
-<body> (optional)
-
-<footer> (optional)
-```
-
-Allowed commit types:
-
-- feat: new feature
-- fix: bug fix
-- docs: documentation
-- style: formatting (no code behavior change)
-- refactor: refactoring without functional change
-- test: adding or updating tests
-- chore: build process or auxiliary tools
-
-The subject line MUST be concise and imperative.
-
-Allowed:
-
-- Showing git commands as examples (dry-run, text only)
-- Proposing a git workflow plan and waiting for confirmation
+Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
 
 ---
 
-3. File Creation & Cleanup
+## 3. Code & Repo Hygiene
 
-The agent MUST NOT create debug, test, or temporary scripts
-unless explicitly approved.
-
-If any temporary files are created:
-
-- They MUST be clearly labeled (e.g. debug_, tmp_)
-- They MUST be removed or reverted before final output, unless approved by user
-
-Default assumption:
-
+- Generate ONLY what is requested. Keep diffs minimal and scoped.
+- Do NOT modify files outside the requested scope; do NOT refactor, rename, or
+  optimize unrelated code.
+- Do NOT create debug/test/temporary scripts unless approved. Any temporary
+  files must be clearly labeled (e.g. `debug_`, `tmp_`) and removed before
+  finishing.
+- Remove dead code, unused imports, and debug prints when touching a file.
 - The repository must remain clean after the task.
 
 ---
 
-4. Code Modification Rules
+## 4. Documentation & Docstring Style
 
-- Generate ONLY what is explicitly requested.
-- Do NOT refactor, rename, or optimize unrelated code.
-- Do NOT modify files outside the explicitly mentioned scope.
+For Python code, all docstrings MUST use Sphinx / reStructuredText (reST) style.
 
----
-
-5. Documentation & Docstring Style
-
-For Python code, all docstrings MUST use
-Sphinx / reStructuredText (reST) style.
-
-- Parameters MUST be documented using the :param <name>: format.
-- Return values MUST be documented using :return: when applicable.
+- Document parameters with `:param <name>:`.
+- Document returns with `:return:` when applicable.
 - Do NOT use Google-style or NumPy-style docstrings unless explicitly requested.
 
 ---
 
-6. Behavior Expansion Control
+## 5. Safety & Caution
 
-The agent MUST ask for permission BEFORE:
-
-- Performing actions not explicitly requested
-- Adding auxiliary scripts or tooling
-- Making structural or architectural changes
-- Taking actions that affect git history or repository state
-
-The agent MUST present a short action plan and wait for approval.
+- Be cautious with destructive commands (`rm`, `sudo`, force-push, etc.).
+- Destructive or irreversible actions require explicit reconfirmation.
 
 ---
 
-7. Safety & Caution
+## 6. Compliance Priority
 
-- Be extremely cautious with destructive commands (rm, sudo, etc.).
-- Even if allowed, destructive actions require explicit reconfirmation.
+If instructions conflict:
 
----
-
-8. Compliance Priority
-
-If any instruction conflicts:
-
-- User explicit instruction
-- This AGENTS.md
-- Project-local rules
-- Default agent behavior
+1. User explicit instruction
+2. This AGENTS.md
+3. Project-local rules
+4. Default agent behavior
