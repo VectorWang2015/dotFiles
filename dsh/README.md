@@ -9,6 +9,7 @@
 | `plugins/dsh-workspace-open/` | `~/.dsh/plugins/dsh-workspace-open/` |
 | `profiles/web/cordis.patch.yml` | `~/.dsh/profiles/web/cordis.patch.yml` |
 | `profiles/web/package.json` | `~/.dsh/profiles/web/package.json` |
+| `pets/jingzhenen/` | `~/.codex/pets/jingzhenen/` |
 
 部署方式：**手动复制**（与其他 dotFiles 条目一致，复制而非 symlink）。
 
@@ -37,6 +38,16 @@
 
 声明依赖 + `dsh.profile.bundles` 列表，新增了 `dsh-workspace-open`。
 
+### 4. `pets/jingzhenen/`
+
+dsh-pet 自定义宠物「鲸震恩」（蓝色鲸鱼），两个文件缺一不可：
+
+- `pet.json`：宠物清单（id / displayName / cell / 每行帧数 / 各 track 节奏）。
+- `spritesheet.webp`：9 行动画图集（1536×1872，透明背景）。
+
+dsh-pet 的 registry 会自动扫描 `~/.codex/pets/*/`，放进目录后重启 `dsh web`，
+在宠物设置里选「鲸震恩」即可。
+
 ## 新机器部署步骤
 
 1. 安装 DSH（`npm exec @deepseek-ai/dsh ...` 或等效方式），确保 `~/.dsh/` 已初始化。
@@ -51,6 +62,12 @@
    ```bash
    cp dsh/profiles/web/cordis.patch.yml ~/.dsh/profiles/web/cordis.patch.yml
    cp dsh/profiles/web/package.json ~/.dsh/profiles/web/package.json
+   ```
+
+4. 复制宠物：
+   ```bash
+   mkdir -p ~/.codex/pets
+   cp -r dsh/pets/jingzhenen ~/.codex/pets/
    ```
 
 4. **调整 `~/.dsh/profiles/web/package.json` 里的 file: 路径**（机器相关）：
