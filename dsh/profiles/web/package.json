@@ -3,8 +3,10 @@
   "private": true,
   "dependencies": {
     "@dsh-external/dsh-ads": "github:Nagi-ovo/dsh-ads",
+    "@linxin666/dsh-web-ui-all": "^0.1.18",
     "dsh-plugin-deepeye": "^0.1.1",
-    "dsh-workspace-open": "file:/home/vectorwang/.dsh/plugins/dsh-workspace-open"
+    "dsh-workspace-open": "file:/home/vectorwang/.dsh/plugins/dsh-workspace-open",
+    "dsh-btw": "file:/home/vectorwang/.dsh/plugins/dsh-btw"
   },
   "dsh": {
     "profile": {
@@ -13,7 +15,9 @@
         "@deepseek-ai/dsh-web-app",
         "@dsh-external/dsh-ads",
         "dsh-plugin-deepeye",
-        "dsh-workspace-open"
+        "dsh-workspace-open",
+        "dsh-btw",
+        "@linxin666/dsh-web-ui-all"
       ]
     }
   }

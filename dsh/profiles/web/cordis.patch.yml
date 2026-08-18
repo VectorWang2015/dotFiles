@@ -15,3 +15,8 @@
 # mechanism as the telemetry switch: `disabled: true` on a patch row).
 - id: dsh-ads
   disabled: true
+
+# Disable dsh-web-ui's bundled describe-image tool (keep DeepEye as the only
+# vision provider; id-targeted override, same mechanism as dsh-ads above).
+- id: describe-image
+  disabled: true
