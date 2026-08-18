@@ -16,8 +16,14 @@ Personal dotfiles backup. No build, test, lint, or CI. Files are manually deploy
 | `ranger/` | `~/.config/ranger/` |
 | `scripts/` | `~/scripts/` |
 | `dsh/plugins/dsh-workspace-open/` | `~/.dsh/plugins/dsh-workspace-open/` |
+| `dsh/plugins/dsh-btw/` | `~/.dsh/plugins/dsh-btw/` |
 | `dsh/profiles/web/cordis.patch.yml` | `~/.dsh/profiles/web/cordis.patch.yml` |
+| `dsh/profiles/web/cordis.yml` | `~/.dsh/profiles/web/cordis.yml` |
 | `dsh/profiles/web/package.json` | `~/.dsh/profiles/web/package.json` |
+| `dsh/profiles/web/pnpm-workspace.yaml` | `~/.dsh/profiles/web/pnpm-workspace.yaml` |
+| `dsh/profiles/web/pnpm-lock.yaml` | `~/.dsh/profiles/web/pnpm-lock.yaml` |
+| `dsh/cordis.patch.yml` | `~/.dsh/cordis.patch.yml` |
+| `dsh/settings.yaml` | `~/.dsh/settings.yaml` |
 
 ## Tmux specifics
 

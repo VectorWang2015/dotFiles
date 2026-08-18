@@ -1,0 +1,25 @@
+
+
+# --- dsh-skin managed (auto-generated; do not edit) ---
+- id: ui-skin-blue-fantasy
+  disabled: true
+- id: ui-skin-dragon-heir
+  disabled: true
+- id: ui-skin-harbor
+  disabled: true
+- id: ui-skin-miku
+  disabled: true
+- id: ui-skin-minecraft
+  disabled: true
+- id: ui-skin-qq98
+  disabled: true
+- id: ui-skin-ths
+  disabled: true
+- id: ui-skin-trading
+  disabled: true
+- id: ui-skin-whale-song
+  disabled: true
+- insert:
+    - id: ui-skin-xp
+      name: '@linxin666/dsh-client-ui-skin-xp'
+# --- end dsh-skin managed ---

@@ -1,0 +1,18 @@
+ui-onboarding:
+  welcomeNoticeVersion: 2026-08-13.1
+locale:
+  preference: zh
+ui-theme:
+  preference: system
+agent-default-model:
+  provider: deepseek-official
+  model: deepseek-v4-pro
+  reasoningEffort: max
+ui-conversation:
+  busyEnter: queue
+pet:
+  petId: jingzhenen
+  visible: true
+  size: 160
+  right: 370
+  bottom: 669

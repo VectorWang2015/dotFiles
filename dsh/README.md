@@ -7,8 +7,14 @@
 | Repo | System destination |
 |------|-------------------|
 | `plugins/dsh-workspace-open/` | `~/.dsh/plugins/dsh-workspace-open/` |
+| `plugins/dsh-btw/` | `~/.dsh/plugins/dsh-btw/` |
 | `profiles/web/cordis.patch.yml` | `~/.dsh/profiles/web/cordis.patch.yml` |
+| `profiles/web/cordis.yml` | `~/.dsh/profiles/web/cordis.yml` |
 | `profiles/web/package.json` | `~/.dsh/profiles/web/package.json` |
+| `profiles/web/pnpm-workspace.yaml` | `~/.dsh/profiles/web/pnpm-workspace.yaml` |
+| `profiles/web/pnpm-lock.yaml` | `~/.dsh/profiles/web/pnpm-lock.yaml` |
+| `cordis.patch.yml` | `~/.dsh/cordis.patch.yml`（home 层 patch，皮肤选择） |
+| `settings.yaml` | `~/.dsh/settings.yaml` |
 | `pets/jingzhenen/` | `~/.codex/pets/jingzhenen/` |
 
 部署方式：**手动复制**（与其他 dotFiles 条目一致，复制而非 symlink）。
@@ -38,7 +44,25 @@
 
 声明依赖 + `dsh.profile.bundles` 列表，新增了 `dsh-workspace-open`。
 
-### 4. `pets/jingzhenen/`
+### 4. `dsh-btw` 插件（btw 旁路问答 = 实时 fork）
+
+主 agent **忙碌时**输入 `/btw <问题>`，实时 fork 出一个继承当前会话完整上下文的子会话
+并行回答，不打断、不排队进主会话（并行开发请用 fork / subagent，不要用 btw）。
+
+- **机制**：注册 dsh-commands 人类命令（`/btw`），handler 复刻 fork RPC 的切点逻辑
+  （seed = 源会话全部已完成回合 + 回合间状态事件，不获取源 Agent，因此 busy 时可用）；
+  子会话继承 cwd / 工作区挂接 / 模型选择 / agent 预设，标题 `btw: <摘要>`；
+  进行中回合的 user 请求作为「主会话正在进行中的任务」附注拼进子会话首条消息。
+- **只读默认**：先对子会话执行 `/permission read-only` 钉只读（问答定位，避免写冲突）；
+  失败则回退继承源会话权限。
+- **cordis 陷阱**：直接访问 `ctx.agents` 等服务属性必须在插件 `inject` 中声明
+  （本插件 `["commands", "systemPrompt", "agents"]`），否则运行时抛
+  `cannot get property "agents" without inject`；可选服务一律用 `ctx.get(...)` 软查找。
+- **改代码后**：file: 依赖按版本快照复制，需升版本号 → 
+  `cd ~/.dsh/profiles/web && rm -rf node_modules/dsh-btw node_modules/.pnpm/dsh-btw* && pnpm install`
+  → 重启 `dsh web`。
+
+### 5. `pets/jingzhenen/`
 
 dsh-pet 自定义宠物「鲸震恩」（蓝色鲸鱼），两个文件缺一不可：
 
@@ -56,12 +80,18 @@ dsh-pet 的 registry 会自动扫描 `~/.codex/pets/*/`，放进目录后重启 
    ```bash
    mkdir -p ~/.dsh/plugins
    cp -r dsh/plugins/dsh-workspace-open ~/.dsh/plugins/
+   cp -r dsh/plugins/dsh-btw ~/.dsh/plugins/
    ```
 
-3. 复制 profile 配置：
+3. 复制 profile 配置与 home 层状态：
    ```bash
    cp dsh/profiles/web/cordis.patch.yml ~/.dsh/profiles/web/cordis.patch.yml
+   cp dsh/profiles/web/cordis.yml ~/.dsh/profiles/web/cordis.yml
    cp dsh/profiles/web/package.json ~/.dsh/profiles/web/package.json
+   cp dsh/profiles/web/pnpm-workspace.yaml ~/.dsh/profiles/web/pnpm-workspace.yaml
+   cp dsh/profiles/web/pnpm-lock.yaml ~/.dsh/profiles/web/pnpm-lock.yaml
+   cp dsh/cordis.patch.yml ~/.dsh/cordis.patch.yml
+   cp dsh/settings.yaml ~/.dsh/settings.yaml
    ```
 
 4. 复制宠物：
@@ -70,26 +100,28 @@ dsh-pet 的 registry 会自动扫描 `~/.codex/pets/*/`，放进目录后重启 
    cp -r dsh/pets/jingzhenen ~/.codex/pets/
    ```
 
-4. **调整 `~/.dsh/profiles/web/package.json` 里的 file: 路径**（机器相关）：
+5. **调整 `~/.dsh/profiles/web/package.json` 里的 file: 路径**（机器相关）：
    ```json
-   "dsh-workspace-open": "file:/home/vectorwang/.dsh/plugins/dsh-workspace-open"
+   "dsh-workspace-open": "file:/home/vectorwang/.dsh/plugins/dsh-workspace-open",
+   "dsh-btw": "file:/home/vectorwang/.dsh/plugins/dsh-btw"
    ```
    把 `/home/vectorwang/` 改成新机器的实际 home，或改用相对路径。
 
-5. 在 `~/.dsh/profiles/web/` 下重装依赖，让 symlink 与 lockfile 落地：
+6. 在 `~/.dsh/profiles/web/` 下重装依赖（lockfile 已在 repo，直接 `pnpm install` 复现）：
    ```bash
    cd ~/.dsh/profiles/web && pnpm install
    ```
 
-6. 确认 `dsh.profile.bundles` 列表包含 `dsh-workspace-open`（`pnpm install` 不会自动
-   reconcile bundle 列表——那需要 `dsh plugin` 命令；保险起见手动核对）。
+7. 确认 `dsh.profile.bundles` 列表包含 `dsh-workspace-open` 与 `dsh-btw`
+   （`pnpm install` 不会自动 reconcile bundle 列表——那需要 `dsh plugin` 命令；
+   保险起见手动核对）。
 
-7. 配置 `~/.dsh/.env`（**敏感，不备份**）：
+8. 配置 `~/.dsh/.env`（**敏感，不备份**）：
    ```bash
    echo 'DEEPEYE_API_KEY="<你的智谱 key>"' > ~/.dsh/.env
    ```
 
-8. 重启 `dsh web` 服务（bundle 列表是启动时扫描的，热重载不覆盖新增 bundle）。
+9. 重启 `dsh web` 服务（bundle 列表是启动时扫描的，热重载不覆盖新增 bundle）。
 
 ## 关键约定
 
