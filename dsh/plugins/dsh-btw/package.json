@@ -1,6 +1,6 @@
 {
   "name": "dsh-btw",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "btw 旁路问答：/btw <问题> —— 主 agent 忙碌时实时 fork 一个继承当前会话完整上下文的子会话并行回答，不打断主会话。",
   "private": true,
   "type": "module",

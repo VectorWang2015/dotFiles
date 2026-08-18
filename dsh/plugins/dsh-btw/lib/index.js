@@ -55,7 +55,7 @@ function truncate(text, max) {
 }
 
 /** Handle one /btw invocation: fork + pin + deliver, never throw. */
-async function handleBtw(ctx, invocation, config) {
+export async function handleBtw(ctx, invocation, config) {
   const { agent, rawInput, signal } = invocation
   const question = rawInput.trim()
   const maxQuestionChars = config?.maxQuestionChars ?? ConfigDefaults.maxQuestionChars
@@ -166,7 +166,8 @@ async function handleBtw(ctx, invocation, config) {
   // Workspace attachment (best effort): direct ownership, then lineage trace
   // when the source is itself a subagent (mirrors forkWorkspace).
   try {
-    const workspaces = ctx.workspaceRegistry.list()
+    const registry = ctx.get("workspaceRegistry")
+    const workspaces = registry?.list() ?? []
     let workspace = workspaces.find((candidate) => candidate.sessionIds.includes(source.id))
     if (workspace === undefined && source.header.origin === "subagent") {
       const query = ctx.get("sessionQuery")
@@ -237,7 +238,7 @@ async function handleBtw(ctx, invocation, config) {
   }
 }
 
-export const inject = ["commands", "systemPrompt"]
+export const inject = ["commands", "systemPrompt", "agents"]
 
 export function apply(ctx, config) {
   ctx.effect(() =>
