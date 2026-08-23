@@ -8,6 +8,7 @@
 |------|-------------------|
 | `plugins/dsh-workspace-open/` | `~/.dsh/plugins/dsh-workspace-open/` |
 | `plugins/dsh-btw/` | `~/.dsh/plugins/dsh-btw/` |
+| `plugins/dsh-session-hard-delete/` | `~/.dsh/plugins/dsh-session-hard-delete/` |
 | `profiles/web/cordis.patch.yml` | `~/.dsh/profiles/web/cordis.patch.yml` |
 | `profiles/web/cordis.yml` | `~/.dsh/profiles/web/cordis.yml` |
 | `profiles/web/package.json` | `~/.dsh/profiles/web/package.json` |
@@ -72,6 +73,22 @@ dsh-pet 自定义宠物「鲸震恩」（蓝色鲸鱼），两个文件缺一不
 dsh-pet 的 registry 会自动扫描 `~/.codex/pets/*/`，放进目录后重启 `dsh web`，
 在宠物设置里选「鲸震恩」即可。
 
+### 6. `dsh-session-hard-delete` 插件（硬删除会话）
+
+在会话头部加「🗑 完全删除」按钮，**永久删除**当前会话的持久化 log
+（`~/.dsh/sessions/<cwd>/session-<id>/session.jsonl.zstd`），区别于原生「归档」
+（仅隐藏、不删文件）。不删 fork 子会话；允许删当前打开的会话（删后 reload）；
+拒绝删除 agent 仍在运行的会话。
+
+- **host half**（`lib/index.js`）：注册 `POST /api/session/hard-delete`，仅限
+  loopback；用 `agents.get(id).status === 'running'` 拦截运行中会话；
+  先 `workspaceRegistry.archiveSession` 隐藏列表，再 `rm` 删除会话目录。
+- **client half**（`lib/client.js`）：`window.__ModuleLoader__.load` 格式，注册到
+  `conversation.session.header.actions` slot；`confirm` 二次确认后 `fetch` 该路由。
+- **改代码后**：file: 依赖按版本快照复制，需升版本号 →
+  `cd ~/.dsh/profiles/web && rm -rf node_modules/dsh-session-hard-delete node_modules/.pnpm/dsh-session-hard-delete* && pnpm install`
+  → 重启 `dsh web`。
+
 ## 新机器部署步骤
 
 1. 安装 DSH（`npm exec @deepseek-ai/dsh ...` 或等效方式），确保 `~/.dsh/` 已初始化。
@@ -81,6 +98,7 @@ dsh-pet 的 registry 会自动扫描 `~/.codex/pets/*/`，放进目录后重启 
    mkdir -p ~/.dsh/plugins
    cp -r dsh/plugins/dsh-workspace-open ~/.dsh/plugins/
    cp -r dsh/plugins/dsh-btw ~/.dsh/plugins/
+   cp -r dsh/plugins/dsh-session-hard-delete ~/.dsh/plugins/
    ```
 
 3. 复制 profile 配置与 home 层状态：
@@ -103,7 +121,8 @@ dsh-pet 的 registry 会自动扫描 `~/.codex/pets/*/`，放进目录后重启 
 5. **调整 `~/.dsh/profiles/web/package.json` 里的 file: 路径**（机器相关）：
    ```json
    "dsh-workspace-open": "file:/home/vectorwang/.dsh/plugins/dsh-workspace-open",
-   "dsh-btw": "file:/home/vectorwang/.dsh/plugins/dsh-btw"
+   "dsh-btw": "file:/home/vectorwang/.dsh/plugins/dsh-btw",
+   "dsh-session-hard-delete": "file:/home/vectorwang/.dsh/plugins/dsh-session-hard-delete"
    ```
    把 `/home/vectorwang/` 改成新机器的实际 home，或改用相对路径。
 
@@ -112,9 +131,9 @@ dsh-pet 的 registry 会自动扫描 `~/.codex/pets/*/`，放进目录后重启 
    cd ~/.dsh/profiles/web && pnpm install
    ```
 
-7. 确认 `dsh.profile.bundles` 列表包含 `dsh-workspace-open` 与 `dsh-btw`
-   （`pnpm install` 不会自动 reconcile bundle 列表——那需要 `dsh plugin` 命令；
-   保险起见手动核对）。
+7. 确认 `dsh.profile.bundles` 列表包含 `dsh-workspace-open`、`dsh-btw` 与
+   `dsh-session-hard-delete`（`pnpm install` 不会自动 reconcile bundle 列表——
+   那需要 `dsh plugin` 命令；保险起见手动核对）。
 
 8. 配置 `~/.dsh/.env`（**敏感，不备份**）：
    ```bash
