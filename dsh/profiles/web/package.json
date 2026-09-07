@@ -1,12 +1,15 @@
 {
   "name": "dsh-profile-web",
   "private": true,
+  "packageManager": "pnpm@11.7.0",
   "dependencies": {
-    "@dsh-external/dsh-ads": "github:Nagi-ovo/dsh-ads",
-    "@linxin666/dsh-web-ui-all": "^0.1.18",
-    "dsh-plugin-deepeye": "^0.1.1",
-    "dsh-workspace-open": "file:/home/vectorwang/.dsh/plugins/dsh-workspace-open",
-    "dsh-btw": "file:/home/vectorwang/.dsh/plugins/dsh-btw"
+    "@dsh-external/dsh-ads": "github:Nagi-ovo/dsh-ads#aa752ed8d24d0a4b5ce1fde4b99b0d9d7f5a1e22",
+    "@linxin666/dsh-web-all": "0.3.16",
+    "@linxin666/dsh-client-ui-session-id": "0.3.16",
+    "dsh-aris": "0.1.0",
+    "dsh-btw": "file:../../plugins/dsh-btw",
+    "dsh-plugin-deepeye": "0.2.0",
+    "dsh-workspace-open": "file:../../plugins/dsh-workspace-open/releases/dsh-workspace-open-1.1.1.tgz"
   },
   "dsh": {
     "profile": {
@@ -17,7 +20,9 @@
         "dsh-plugin-deepeye",
         "dsh-workspace-open",
         "dsh-btw",
-        "@linxin666/dsh-web-ui-all"
+        "@linxin666/dsh-web-all",
+        "@linxin666/dsh-client-ui-session-id",
+        "dsh-aris"
       ]
     }
   }

@@ -4,9 +4,10 @@ packages:
 nodeLinker: hoisted
 autoInstallPeers: false
 minimumReleaseAgeExclude:
-  - dsh-plugin-deepeye@0.1.1
+  - dsh-plugin-deepeye
   - '@linxin666/*'
 allowBuilds:
   cloudflared: true
   cpu-features: true
+  node-pty: true
   ssh2: true

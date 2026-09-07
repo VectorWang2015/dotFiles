@@ -1,7 +1,7 @@
 {
   "name": "dsh-btw",
-  "version": "0.1.2",
-  "description": "btw 旁路问答：/btw <问题> —— 主 agent 忙碌时实时 fork 一个继承当前会话完整上下文的子会话并行回答，不打断主会话。",
+  "version": "0.2.0",
+  "description": "btw 旁路问答：主 agent 忙碌时实时 fork 已完成上下文，并在验证只读权限后并行回答。Target: DSH 0.1.2-rc.1.",
   "private": true,
   "type": "module",
   "main": "lib/index.js",
@@ -14,6 +14,9 @@
     "lib",
     "cordis.patch.yml"
   ],
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"

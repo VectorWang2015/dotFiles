@@ -5,14 +5,68 @@ locale:
 ui-theme:
   preference: system
 agent-default-model:
-  provider: deepseek-official
-  model: deepseek-v4-pro
+  provider: copilot_api
+  model: gpt-6-astra
   reasoningEffort: max
 ui-conversation:
   busyEnter: queue
 pet:
   petId: jingzhenen
   visible: true
-  size: 160
-  right: 370
-  bottom: 669
+  size: 64
+  right: 222
+  bottom: 396
+llm-pi-ai:
+  providers:
+    superapibuzz:
+      displayName: superapi.buzz
+      apiKeyEnv: SUPERAPIBUZZ_API_KEY
+      api: anthropic-messages
+      baseURL: https://superapi.buzz
+      models:
+        - id: claude-fable-5
+        - id: claude-haiku-4-5-20251001
+        - id: claude-opus-4-5-20251101
+        - id: claude-opus-4-6
+        - id: claude-opus-4-7
+        - id: claude-opus-4-8
+        - id: claude-opus-5
+        - id: claude-sonnet-4-5-20250929
+        - id: claude-sonnet-4-6
+        - id: claude-sonnet-5
+    copilot_api:
+      displayName: Copilot API (my-infra)
+      apiKeyEnv: COPILOT_API_KEY
+      api: openai-responses
+      baseURL: https://my-infra.zhehoo.online:4140
+      streamIdleTimeoutMs: 300000
+      retryPolicy:
+        mode: normal
+        maxRetries: 3
+      compat:
+        supportsStrictMode: true
+      models:
+        - id: gpt-5.6-sol-fast
+          name: GPT-5.6 Sol Fast
+          contextWindow: 922000
+          reasoningEfforts:
+            off: null
+            low: 'low'
+            medium: 'medium'
+            high: 'high'
+            max: 'max'
+        - id: gpt-6-astra
+          name: GPT-6 Astra
+          contextWindow: 1000000
+          maxTokens: 128000
+          input:
+            - text
+            - image
+          reasoningEfforts:
+            low: 'low'
+            medium: 'medium'
+            high: 'high'
+            xhigh: 'xhigh'
+            max: 'max'
+skin-custom-theme:
+  applied: false

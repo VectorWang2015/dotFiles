@@ -10,6 +10,7 @@
     baseUrl: 'https://open.bigmodel.cn/api/paas/v4'
     model: glm-4.6v
     maxTokens: 8192
+    requestTimeout: 120000
 
 # Disable the dsh-ads bundle row entirely (id-targeted override, same
 # mechanism as the telemetry switch: `disabled: true` on a patch row).
@@ -18,5 +19,9 @@
 
 # Disable dsh-web-ui's bundled describe-image tool (keep DeepEye as the only
 # vision provider; id-targeted override, same mechanism as dsh-ads above).
-- id: describe-image
+- id: web-ui-describe-image
+  disabled: true
+
+# workspace.sh owns manual startup; do not auto-provision a background supervisor.
+- id: web-ui-doctor
   disabled: true

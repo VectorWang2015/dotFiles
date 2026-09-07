@@ -1,152 +1,85 @@
-# DSH (DeepSeek Harness) 配置备份
+# DSH 配置与本地插件备份
 
-本目录备份 `~/.dsh/` 下的持久化配置，供新机器直接参照部署。
+本目录保存源码构建的 DSH `0.1.2-rc.1` 配套配置。文件手动复制部署，不使用 symlink；不包含凭据、用户会话或 node_modules。实际切换结果以本机 `~/dsh-upgrade-2026-09-05/result.json` 和 `DEPLOYMENT-RESULT.md` 为准。
 
-## 目录镜像
+## 固定版本
 
-| Repo | System destination |
-|------|-------------------|
-| `plugins/dsh-workspace-open/` | `~/.dsh/plugins/dsh-workspace-open/` |
-| `plugins/dsh-btw/` | `~/.dsh/plugins/dsh-btw/` |
-| `plugins/dsh-session-hard-delete/` | `~/.dsh/plugins/dsh-session-hard-delete/` |
-| `profiles/web/cordis.patch.yml` | `~/.dsh/profiles/web/cordis.patch.yml` |
-| `profiles/web/cordis.yml` | `~/.dsh/profiles/web/cordis.yml` |
-| `profiles/web/package.json` | `~/.dsh/profiles/web/package.json` |
-| `profiles/web/pnpm-workspace.yaml` | `~/.dsh/profiles/web/pnpm-workspace.yaml` |
-| `profiles/web/pnpm-lock.yaml` | `~/.dsh/profiles/web/pnpm-lock.yaml` |
-| `cordis.patch.yml` | `~/.dsh/cordis.patch.yml`（home 层 patch，皮肤选择） |
-| `settings.yaml` | `~/.dsh/settings.yaml` |
+| 组件 | 版本/位置 |
+|---|---|
+| DSH | tag `dsh-v0.1.2-rc.1`，SHA `a66e4702047846cdaa10c66c9d3df3951f5ea70d` |
+| 活跃源码目标 | `~/Workspace/deepseek-harness-0.1.2-rc.1` |
+| 回滚源码 | `~/Workspace/deepseek-harness`，保留 `0.1.1-rc.2` 原构建 |
+| UI 全家桶 | `@linxin666/dsh-web-all@0.3.16`，不要混装旧 `dsh-web-ui-all` |
+| Better Sidebar | 新全家桶带入 `0.18.0` |
+| Session ID | 独立保留 `@linxin666/dsh-client-ui-session-id@0.3.16` |
+| DeepEye / ARIS | `dsh-plugin-deepeye@0.2.0` / `dsh-aris@0.1.0` |
+| 自制 BTW / 打开工作区 | `dsh-btw@0.2.0` / `dsh-workspace-open@1.1.1` |
+
+主程序使用目标 checkout 的 pnpm `11.7.0` 与 frozen lockfile 构建，包括 Web artifacts。修改源码或插件之后，必须验证实际安装副本并重启；单纯编辑 dotFiles 不会改变运行中的 GUI。
+
+## 部署镜像
+
+这里的 profile 是已审查的升级基线，不是对本机全部后续实验配置的自动镜像。工作区打开插件、BTW 与启动脚本已和本机核对；本机另行安装的 ARIS 隔离版、浏览器实验插件及其临时热加载覆盖未纳入这份 profile。恢复到已有环境时应按项合并，不要用本目录整体覆盖较新的本机配置。
+
+| Repo | 本机部署位置 |
+|---|---|
+| `plugins/*` | `~/.dsh/plugins/*` |
+| `profiles/web/*` | `~/.dsh/profiles/web/*` |
+| `cordis.patch.yml` | `~/.dsh/cordis.patch.yml` |
+| `settings.yaml` | `~/.dsh/settings.yaml`（只含配置及凭据环境变量名） |
 | `pets/jingzhenen/` | `~/.codex/pets/jingzhenen/` |
+| `../scripts/start_workspace_on_boot.sh` | `~/workspace.sh` 与 `~/Workspace/000000_scripts/start_workspace_on_boot.sh` |
 
-部署方式：**手动复制**（与其他 dotFiles 条目一致，复制而非 symlink）。
+BTW 使用 `file:../../plugins/dsh-btw`；workspace-open 使用带版本与完整性校验的 `file:../../plugins/dsh-workspace-open/releases/dsh-workspace-open-1.1.1.tgz`，因此复制整个 `~/.dsh` 后仍可解析。`pnpm install` 不负责更新 `dsh.profile.bundles`；聚合 bundle 的名称和列表必须与 manifest 一致。profile 使用 `nodeLinker: hoisted`、`autoInstallPeers: false`，避免重复安装另一份 DSH/Cordis。
 
-## 包含的改动
+对自制插件改版，必须检查 node_modules 的实际版本和文件内容，不能只看安装命令成功。hoisted 模式下目录型 file 依赖可能保留旧副本；workspace-open 因此打成版本化 tarball。后续修改它时升版本、在插件目录执行 `pnpm pack --pack-destination releases`、修改 profile 的 tarball 路径并重新安装；源码、tarball、profile 和 lockfile 一起备份。
 
-### 1. `dsh-workspace-open` 插件（本地 bundle 插件）
+## 自制插件
 
-在会话头部加一个「📂 打开工作区」按钮，用系统默认文件管理器打开当前会话所属工作区目录。
+### BTW
 
-- 纯 Client 插件（`lib/index.js` 的 host half 为空 `apply`）。
-- `lib/client.js` 是构建产物格式（`window.__ModuleLoader__.load`），注册到
-  `conversation.session.header.actions` slot，读取 `useSessions().byId[id].cwd`
-  后调用 `ctx.workspaces.openPath(cwd)`。
-- 依赖 `dsh.client.inject: ["@deepseek-ai/dsh-client-runtime", "@deepseek-ai/dsh-client-ui-slots"]`。
+主会话忙碌时 `/btw <问题>` 从已完成回合边界分叉，继承模型、preset 和工作区，在独立会话回答。实现使用 rc.1 的 Session snapshot、继承长度和 preset 接口。
 
-### 2. `profiles/web/cordis.patch.yml`
+投递前调用四参数 `commands.execute(child, '/permission read-only', [], signal)`，并核实 permission preset 与 sandbox policy 都为只读；失败不投递并清理子 Agent/工作区挂接。只读安全覆盖遵守 DSH sandboxPolicy 的工具，不承诺能约束绕过该策略直接使用 Node/远程服务的第三方代码。详见 [BTW README](plugins/dsh-btw/README.md)。
 
-用户 patch 层，两处 id-targeted override：
+测试：`node --test plugins/dsh-btw/test/*.test.js`。真实部署验收还必须检查忙碌父会话、fork lineage、子会话回答与实际写文件拒绝，而非仅检查 prompt 文本。
 
-- `deepeye-vision`：把视觉调用路由到 Zhipu GLM-4.6V（付费）。
-  **API key 不在此文件内**——它来自 `~/.dsh/.env` 的 `$DEEPEYE_API_KEY`，
-  该 `.env` 是敏感文件，**切勿提交**（见下）。
-- `dsh-ads`：`disabled: true`，关闭广告插件。
+### 打开工作区
 
-### 3. `profiles/web/package.json`
+会话头部按钮从标准 `useSessions` / `sessionId` 取得当前 cwd，通过已认证的 Connection RPC 调用 `session/openWorkspacePath` 打开宿主文件管理器，避免 Better Sidebar 对 Remote proxy 的文件预览接管。不依赖已删除的 client-runtime 或 workspaces.openPath。详见 [插件 README](plugins/dsh-workspace-open/README.md)。
 
-声明依赖 + `dsh.profile.bundles` 列表，新增了 `dsh-workspace-open`。
+测试：`node --test plugins/dsh-workspace-open/tests/*.test.mjs`。
 
-### 4. `dsh-btw` 插件（btw 旁路问答 = 实时 fork）
+### 会话归档与删除
 
-主 agent **忙碌时**输入 `/btw <问题>`，实时 fork 出一个继承当前会话完整上下文的子会话
-并行回答，不打断、不排队进主会话（并行开发请用 fork / subagent，不要用 btw）。
+会话管理统一使用全家桶中的 `@linxin666/dsh-session-archive`，入口是「设置 → 会话归档管理」。旧的自制硬删除插件已移除，不再维护第二套直接删除目录的接口。归档不等于删除；物理删除需要单独确认，并注意可能包含子孙会话。
 
-- **机制**：注册 dsh-commands 人类命令（`/btw`），handler 复刻 fork RPC 的切点逻辑
-  （seed = 源会话全部已完成回合 + 回合间状态事件，不获取源 Agent，因此 busy 时可用）；
-  子会话继承 cwd / 工作区挂接 / 模型选择 / agent 预设，标题 `btw: <摘要>`；
-  进行中回合的 user 请求作为「主会话正在进行中的任务」附注拼进子会话首条消息。
-- **只读默认**：先对子会话执行 `/permission read-only` 钉只读（问答定位，避免写冲突）；
-  失败则回退继承源会话权限。
-- **cordis 陷阱**：直接访问 `ctx.agents` 等服务属性必须在插件 `inject` 中声明
-  （本插件 `["commands", "systemPrompt", "agents"]`），否则运行时抛
-  `cannot get property "agents" without inject`；可选服务一律用 `ctx.get(...)` 软查找。
-- **改代码后**：file: 依赖按版本快照复制，需升版本号 → 
-  `cd ~/.dsh/profiles/web && rm -rf node_modules/dsh-btw node_modules/.pnpm/dsh-btw* && pnpm install`
-  → 重启 `dsh web`。
+## 有意保留的配置
 
-### 5. `pets/jingzhenen/`
+- DeepEye 路由保持 Zhipu GLM-4.6V、maxTokens 8192、requestTimeout 120000；API key 来自机器私有 `.env`。
+- `web-ui-describe-image` 禁用，避免与 DeepEye 重复；必须使用聚合行的 `web-ui-` 前缀。
+- 广告插件保持禁用，Git 依赖固定原有 commit。
+- `web-ui-doctor` 禁用：通过 workspace.sh/tmux 手动启动，不让插件另外部署后台 supervisor。
+- 使用官方 JSONL 持久化，不启用旧 Better Session / 第三方 RDB / perf 持久化覆盖。
+- 新全家桶不携带旧 chat-recovery、AionUI 面板和 desktop-launcher；归档改用新 session-archive，Session ID 独立保留。
+- v0.3.16 对禁用家族行仍可能显示设置入口；doctor/status 和 CLI 不提供的 update/status 的 404 不代表 DSH 核心不可用。其他资源失败应调查，不能一概忽略。
 
-dsh-pet 自定义宠物「鲸震恩」（蓝色鲸鱼），两个文件缺一不可：
+## 启动与维护
 
-- `pet.json`：宠物清单（id / displayName / cell / 每行帧数 / 各 track 节奏）。
-- `spritesheet.webp`：9 行动画图集（1536×1872，透明背景）。
+日常入口是 `~/workspace.sh`（等同于 `~/Workspace/000000_scripts/start_workspace_on_boot.sh`）。它在工作区的 `dsh-web` tmux 窗口中直接运行 `pnpm dsh web --port 3080`，不调用 systemd，也不读取升级事务的结果文件来决定启动方式。
 
-dsh-pet 的 registry 会自动扫描 `~/.codex/pets/*/`，放进目录后重启 `dsh web`，
-在宠物设置里选「鲸震恩」即可。
+- 新建工作区时创建 DSH 窗口；已有 `workspace` / `1-workspace` 等会话时，如果 DSH 已退出，也可以重新启动它。
+- 3080 已被占用时跳过重复启动，不主动中断正在使用该端口的进程。
+- 日志直接显示在 DSH 的 tmux 窗口中；在该窗口按 Ctrl+C 会结束 DSH，关闭承载它的 pane 也会影响服务。
+- 只启动 DSH 时，也可在新 checkout 的终端中直接运行 `pnpm dsh web --port 3080`。
+- 本仓库不再分发 systemd unit。按用户选择，2026-09-06 调整时没有重启现有实例；该临时旧 unit 已禁用自动启动和自动重启，保留当前进程至退出。
 
-### 6. `dsh-session-hard-delete` 插件（硬删除会话）
+完整升级/回滚备份仍保存在 `~/dsh-upgrade-2026-09-05/`（私有目录，不提交）；旧升级报告记录的是当时的切换方式，未来启动以本节为准。过渡中的当前实例仍将日志写入旧日志位置，因此暂时保留该目录。浏览器登录使用当前 DSH 启动时显示的 launch URL；token 不放入 dotFiles 或公开报告。
 
-在会话头部加「🗑 完全删除」按钮，**永久删除**当前会话的持久化 log
-（`~/.dsh/sessions/<cwd>/session-<id>/session.jsonl.zstd`），区别于原生「归档」
-（仅隐藏、不删文件）。不删 fork 子会话；允许删当前打开的会话（删后 reload）；
-拒绝删除 agent 仍在运行的会话。
+启动脚本修改后运行 `bash -n` 检查语法。重启前确认没有需要保留的活动任务；若回滚，源码、插件/profile 和数据必须成套恢复，并相应调整 `DSH_REPO`。
 
-- **host half**（`lib/index.js`）：注册 `POST /api/session/hard-delete`，仅限
-  loopback；用 `agents.get(id).status === 'running'` 拦截运行中会话；
-  先 `workspaceRegistry.archiveSession` 隐藏列表，再 `rm` 删除会话目录。
-- **client half**（`lib/client.js`）：`window.__ModuleLoader__.load` 格式，注册到
-  `conversation.session.header.actions` slot；`confirm` 二次确认后 `fetch` 该路由。
-- **改代码后**：file: 依赖按版本快照复制，需升版本号 →
-  `cd ~/.dsh/profiles/web && rm -rf node_modules/dsh-session-hard-delete node_modules/.pnpm/dsh-session-hard-delete* && pnpm install`
-  → 重启 `dsh web`。
+## 凭据与备份边界
 
-## 新机器部署步骤
-
-1. 安装 DSH（`npm exec @deepseek-ai/dsh ...` 或等效方式），确保 `~/.dsh/` 已初始化。
-
-2. 复制插件包：
-   ```bash
-   mkdir -p ~/.dsh/plugins
-   cp -r dsh/plugins/dsh-workspace-open ~/.dsh/plugins/
-   cp -r dsh/plugins/dsh-btw ~/.dsh/plugins/
-   cp -r dsh/plugins/dsh-session-hard-delete ~/.dsh/plugins/
-   ```
-
-3. 复制 profile 配置与 home 层状态：
-   ```bash
-   cp dsh/profiles/web/cordis.patch.yml ~/.dsh/profiles/web/cordis.patch.yml
-   cp dsh/profiles/web/cordis.yml ~/.dsh/profiles/web/cordis.yml
-   cp dsh/profiles/web/package.json ~/.dsh/profiles/web/package.json
-   cp dsh/profiles/web/pnpm-workspace.yaml ~/.dsh/profiles/web/pnpm-workspace.yaml
-   cp dsh/profiles/web/pnpm-lock.yaml ~/.dsh/profiles/web/pnpm-lock.yaml
-   cp dsh/cordis.patch.yml ~/.dsh/cordis.patch.yml
-   cp dsh/settings.yaml ~/.dsh/settings.yaml
-   ```
-
-4. 复制宠物：
-   ```bash
-   mkdir -p ~/.codex/pets
-   cp -r dsh/pets/jingzhenen ~/.codex/pets/
-   ```
-
-5. **调整 `~/.dsh/profiles/web/package.json` 里的 file: 路径**（机器相关）：
-   ```json
-   "dsh-workspace-open": "file:/home/vectorwang/.dsh/plugins/dsh-workspace-open",
-   "dsh-btw": "file:/home/vectorwang/.dsh/plugins/dsh-btw",
-   "dsh-session-hard-delete": "file:/home/vectorwang/.dsh/plugins/dsh-session-hard-delete"
-   ```
-   把 `/home/vectorwang/` 改成新机器的实际 home，或改用相对路径。
-
-6. 在 `~/.dsh/profiles/web/` 下重装依赖（lockfile 已在 repo，直接 `pnpm install` 复现）：
-   ```bash
-   cd ~/.dsh/profiles/web && pnpm install
-   ```
-
-7. 确认 `dsh.profile.bundles` 列表包含 `dsh-workspace-open`、`dsh-btw` 与
-   `dsh-session-hard-delete`（`pnpm install` 不会自动 reconcile bundle 列表——
-   那需要 `dsh plugin` 命令；保险起见手动核对）。
-
-8. 配置 `~/.dsh/.env`（**敏感，不备份**）：
-   ```bash
-   echo 'DEEPEYE_API_KEY="<你的智谱 key>"' > ~/.dsh/.env
-   ```
-
-9. 重启 `dsh web` 服务（bundle 列表是启动时扫描的，热重载不覆盖新增 bundle）。
-
-## 关键约定
-
-- **`.env` 永不备份**：`~/.dsh/.env` 含明文 API key，属机器私有，不在本仓库。
-- **bundle 列表手动同步**：直接 `pnpm add file:...` 不会把包名加进
-  `dsh.profile.bundles`（reconcile 只在 `dsh plugin` 包装下发生）；新增/删除
-  本地 bundle 后必须手动编辑 `package.json` 的 `bundles` 数组。
-- **重启才生效**：`watchUserPatches` 只热重载 `cordis.patch.yml` 与 home patch，
-  不重载 bundle 层。改动 bundle 列表后需重启 `dsh web`。
+- `.env`、SSH 凭据、Codex 凭据、launch token、会话与测试日志**不进入 dotFiles**。
+- 本机升级事务的私有冷备份可以包含这些数据，目录必须仅本用户可读，不能上传到 Git。
+- 用户已授权对其要求的 dotFiles 改动自主 commit 和正常 push；提交前审查差异、运行相关检查并排除敏感信息。不自动包含无关改动，不擅自新建分支或强推。

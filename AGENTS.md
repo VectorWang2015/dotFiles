@@ -1,6 +1,6 @@
 # dotFiles
 
-Personal dotfiles backup. No build, test, lint, or CI. Files are manually deployed (copied, not symlinked) to system destinations.
+Personal dotfiles backup. No repository-wide build, lint, or CI; local DSH plugins have focused tests. Files are manually deployed (copied, not symlinked) to system destinations.
 
 ## Deployment paths
 
@@ -66,7 +66,7 @@ Personal dotfiles backup. No build, test, lint, or CI. Files are manually deploy
 
 ## Git conventions
 
-From `opencode/AGENTS.md`: conventional commits `type(scope): subject`, branch naming `<type>/<description>`, default mode is analysis-only. Agent must ask before committing, pushing, or branching.
+Use conventional commits `type(scope): subject` and branch names `<type>/<description>`. The user authorizes autonomous commits and normal pushes for user-requested dotFiles changes; do not ask again for each commit or push. Review the scoped diff, run relevant checks, and exclude credentials, session data, and private logs before publishing. Do not blindly include unrelated changes. Ask before creating branches or rewriting remote history; never force-push by default.
 
 ## Hardcoded paths (not portable)
 
