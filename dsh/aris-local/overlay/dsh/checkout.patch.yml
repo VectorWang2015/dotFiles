@@ -1,0 +1,3 @@
+# Retired in this local release: the upstream development overlay mounted skills globally.
+# Install this local package bundle instead; it owns the scoped Research declaration.
+[]

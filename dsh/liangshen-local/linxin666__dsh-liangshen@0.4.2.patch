@@ -1,0 +1,28 @@
+diff --git a/src/index.ts b/src/index.ts
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -57,8 +57,8 @@
+  */
+ export const LIANGSHEN_SETTINGS_NAMESPACE = 'liangshen' as SettingsNamespace
+ 
+-/** Prompt assembly must exist before the announcement section can register. */
+-export const inject = ['systemPrompt']
++/** Wait for both prompt assembly and the registry before declaring the preset. */
++export const inject = ['systemPrompt', 'agentPresets']
+ 
+ /** The wire presentations the preset's tool catalog accepts. */
+ export const PRESENTATION_OPTIONS = ['ptc', 'native', 'both'] as const
+diff --git a/lib/index.js b/lib/index.js
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -542,8 +542,8 @@
+ * binder resolves between the two.
+ */
+ const LIANGSHEN_SETTINGS_NAMESPACE = "liangshen";
+-/** Prompt assembly must exist before the announcement section can register. */
+-const inject = ["systemPrompt"];
++/** Wait for both prompt assembly and the registry before declaring the preset. */
++const inject = ["systemPrompt", "agentPresets"];
+ /** The wire presentations the preset's tool catalog accepts. */
+ const PRESENTATION_OPTIONS = [
+ 	"ptc",

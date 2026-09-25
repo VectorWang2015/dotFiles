@@ -64,11 +64,8 @@ window.__ModuleLoader__.load({
         id: "open-workspace-folder",
         order: 30,
         label: () => "打开工作区文件夹",
-      }, (props) => React.createElement(OpenWorkspaceFolderButton, {
-        useSessions: props.useSessions,
-        sessionId: props.sessionId,
-        openPath,
-      })));
+        inject: () => ({ openPath }),
+      }, OpenWorkspaceFolderButton));
     }
 
     return {

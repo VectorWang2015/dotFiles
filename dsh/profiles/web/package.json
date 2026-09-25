@@ -3,13 +3,15 @@
   "private": true,
   "packageManager": "pnpm@11.7.0",
   "dependencies": {
-    "@dsh-external/dsh-ads": "github:Nagi-ovo/dsh-ads#aa752ed8d24d0a4b5ce1fde4b99b0d9d7f5a1e22",
-    "@linxin666/dsh-web-all": "0.3.16",
-    "@linxin666/dsh-client-ui-session-id": "0.3.16",
-    "dsh-aris": "0.1.0",
+    "@dsh-external/dsh-ads": "github:Nagi-ovo/dsh-ads#7cbc5e5c937a8eb22c6e0169b61ff3298ab0fb58",
+    "@linxin666/dsh-client-ui-session-id": "0.4.2",
+    "@linxin666/dsh-web-all": "0.4.2",
+    "dsh-aris": "file:../../plugins/dsh-aris/releases/dsh-aris-0.1.1-local.2.tgz",
+    "dsh-better-sidebar": "0.21.1",
     "dsh-btw": "file:../../plugins/dsh-btw",
+    "dsh-ego-browser": "0.8.5",
     "dsh-plugin-deepeye": "0.2.0",
-    "dsh-workspace-open": "file:../../plugins/dsh-workspace-open/releases/dsh-workspace-open-1.1.1.tgz"
+    "dsh-workspace-open": "file:../../plugins/dsh-workspace-open/releases/dsh-workspace-open-1.2.0.tgz"
   },
   "dsh": {
     "profile": {
@@ -22,7 +24,9 @@
         "dsh-btw",
         "@linxin666/dsh-web-all",
         "@linxin666/dsh-client-ui-session-id",
-        "dsh-aris"
+        "dsh-better-sidebar",
+        "dsh-aris",
+        "dsh-ego-browser"
       ]
     }
   }

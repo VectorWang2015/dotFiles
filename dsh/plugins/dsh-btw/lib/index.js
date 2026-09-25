@@ -1,5 +1,5 @@
 /**
- * dsh-btw — busy-parent side-channel Q&A for DSH 0.1.2-rc.1.
+ * dsh-btw — busy-parent side-channel Q&A for DSH 0.1.7-rc.2.
  *
  * The plugin snapshots only a completed-turn prefix, creates an ordinary
  * fork-lineage child without acquiring or interrupting the source Agent,
@@ -10,6 +10,7 @@
 import { randomUUID } from "node:crypto"
 import { createUserMessage } from "@deepseek-ai/dsh-llm"
 import { installModelSelection } from "@deepseek-ai/dsh-agent"
+import { buildForkSeed } from "@deepseek-ai/dsh-session/fork"
 import {
   ConfigDefaults,
   buildPrompt,
@@ -35,12 +36,11 @@ function errorText(error) {
   return error instanceof Error ? error.message : String(error)
 }
 
-function presetFor(ctx, session) {
-  const projections = ctx.get("sessionProjections")
-  if (projections === undefined) {
-    throw new Error("sessionProjections service is unavailable; cannot preserve the active agent preset")
+function presetFor(observation) {
+  if (observation.projections === undefined) {
+    throw new Error("projected Session observation is unavailable; cannot preserve the active agent preset")
   }
-  return projections.stateOf(session, "agentPreset") ?? undefined
+  return observation.projections.values.agentPreset ?? undefined
 }
 
 async function forkWorkspace(ctx, source) {
@@ -86,8 +86,23 @@ export async function handleBtw(ctx, invocation, config) {
     return { kind: "error", text: `btw 问题过长（${question.length} 字符），请精简到 ${maxQuestionChars} 字符以内。` }
   }
 
+  let observation
+  try {
+    const query = ctx.get("sessionQuery")
+    if (query === undefined) throw new Error("sessionQuery service is unavailable")
+    observation = await query.observeSession(agent.session.id, { signal, projectionMode: "all" })
+    return await forkObserved(ctx, invocation, config, question, observation)
+  } catch (error) {
+    return { kind: "error", text: `btw 无法读取或继承会话：${errorText(error)}` }
+  } finally {
+    observation?.[Symbol.dispose]()
+  }
+}
+
+async function forkObserved(ctx, invocation, config, question, observation) {
+  const { agent, signal } = invocation
   const source = agent.session
-  const events = source.snapshotEvents()
+  const events = observation.events
   const boundary = forkCut(events)
   if (boundary === undefined) {
     return {
@@ -95,8 +110,14 @@ export async function handleBtw(ctx, invocation, config) {
       text: `会话 ${source.id} 还没有已完成的回合，无法 fork；先正常对话一轮后再试。`,
     }
   }
-  const { lastTurnEnd, cut } = boundary
-  const inflightText = inflightTextOf(events, lastTurnEnd.seq)
+  const { lastTurnEndIndex, cut } = boundary
+  const inflightText = inflightTextOf(events, lastTurnEndIndex)
+  // Observations expose logical, unpacked events. Never apply this cut to
+  // persisted chunk rows, whose physical array indexes are not event seqs.
+  if (events.some((event, index) => event.seq !== index)) {
+    throw new Error("fork requires a contiguous logical Session observation")
+  }
+  const seed = buildForkSeed(events, events[cut - 1].seq)
 
   const fallback = ctx.get("agentDefaultModel")?.currentSelection()
   const picked = latestModelSelection(events, fallback)
@@ -108,7 +129,7 @@ export async function handleBtw(ctx, invocation, config) {
   const presets = ctx.get("agentPresets")
   let preset
   try {
-    const presetId = presetFor(ctx, source)
+    const presetId = presetFor(observation)
     if (presets !== undefined) preset = await presets.resolve(presetId)
     else if (presetId !== undefined) throw new Error("agentPresets service is unavailable")
   } catch (error) {
@@ -127,7 +148,7 @@ export async function handleBtw(ctx, invocation, config) {
   try {
     handle = await ctx.agents.create({
       sessionId: childId,
-      seed: events.slice(0, cut),
+      seed,
       inheritedEventCount: cut,
       meta: {
         ...(source.header.cwd === undefined ? {} : { cwd: source.header.cwd }),
@@ -161,6 +182,7 @@ export async function handleBtw(ctx, invocation, config) {
       titles.rename(child.session, `btw: ${truncate(question, config?.maxTitleChars ?? ConfigDefaults.maxTitleChars)}`)
     }
 
+    signal?.throwIfAborted()
     child.followup(createUserMessage({
       content: [{ type: "text", text: buildPrompt(question, inflightText) }],
       source: { kind: "user" },

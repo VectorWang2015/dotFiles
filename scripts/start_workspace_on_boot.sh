@@ -13,7 +13,7 @@ LABOR_WS_PATH="$HOME/Workspace/navigation2_ws"
 MAIN_SESSION="workspace"
 
 # Run the tested source checkout directly in an interactive tmux window.
-DSH_REPO="$HOME/Workspace/deepseek-harness-0.1.2-rc.1"
+DSH_REPO="$HOME/Workspace/deepseek-harness-0.1.7-rc.2"
 DSH_PORT=3080
 
 usage() {

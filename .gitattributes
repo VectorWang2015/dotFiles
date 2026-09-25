@@ -1,0 +1,5 @@
+# Unified diff context markers intentionally contain a lone space or precede tabs.
+# Source files remain under the normal whitespace checks; only stored patch syntax is exempt.
+dsh/core-patches/*.patch -whitespace
+dsh/liangshen-local/*.patch -whitespace
+dsh/profiles/web/patches/*.patch -whitespace

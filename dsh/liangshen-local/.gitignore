@@ -1,0 +1,5 @@
+/upstream/
+/patched/
+/upstream-0.4.2.tgz
+/test-results.tap
+/reproduce.mjs

@@ -1,6 +1,6 @@
 {
   "name": "dsh-workspace-open",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Add an \"open workspace folder\" button to the session header that opens the current session's workspace directory with the OS default file manager.",
   "private": true,
   "type": "module",
@@ -16,11 +16,12 @@
     "cordis.patch.yml"
   ],
   "scripts": {
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "test:integration": "node integration/run.mjs"
   },
   "dsh": {
     "engines": {
-      "dsh": ">=0.1.2-rc.1"
+      "dsh": ">=0.1.7-rc.2"
     },
     "bundle": {
       "patch": "./cordis.patch.yml"

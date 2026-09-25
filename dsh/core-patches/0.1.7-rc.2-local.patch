@@ -1,0 +1,607 @@
+diff --git a/packages/llm/llm-pi-ai/README.i18n.yaml b/packages/llm/llm-pi-ai/README.i18n.yaml
+index 8afec3d..f2ed2d8 100644
+--- a/packages/llm/llm-pi-ai/README.i18n.yaml
++++ b/packages/llm/llm-pi-ai/README.i18n.yaml
+@@ -39,8 +39,8 @@
+   en: 6619e8cfe7555c73
+   zh: b2f80c25acb81cf8
+ /deepseek-ai-dsh-llm-pi-ai/use-this-package/failures-and-recovery:
+-  en: 65bcc3b0db3f98e5
+-  zh: 3c994e74894bea52
++  en: 94c12b89f5fa32c4
++  zh: fb83a785a8b17660
+ /deepseek-ai-dsh-llm-pi-ai/understand-the-implementation:
+   en: 1598ac8a8bb9b6bf
+   zh: fdd089c5ae7722cd
+diff --git a/packages/llm/llm-pi-ai/README.md b/packages/llm/llm-pi-ai/README.md
+index 7b1708b..ee534a2 100644
+--- a/packages/llm/llm-pi-ai/README.md
++++ b/packages/llm/llm-pi-ai/README.md
+@@ -116,6 +116,8 @@ The plugin answers "which models can this provider serve?" for a route a configu
+ 
+ A route pi-ai does not ship needs `api`, `baseURL`, and a non-empty `models` list; an unserviceable profile is refused where it is written, naming the route and model. Failures carry stable codes: a credential that cannot be used fails with `INVALID_CREDENTIAL` naming the route and reference, a route whose `apiKeyEnv` reference resolves to nothing fails with `MISSING_CREDENTIAL`, an unconfigured model fails with `UNKNOWN_MODEL`, and terminal provider failures distinguish `QUOTA` from transient `RATE_LIMIT`. `GenerateOptions.stop` is rejected with `UNSUPPORTED_OPTION` because pi-ai's common streaming UI cannot guarantee it across providers.
+ 
++Terminal error text exactly matching `internal server error` maps to `SERVER`; `Responses websocket ended without a terminal response` maps to `TRANSPORT`, optionally followed by `, retry your request`. These text matches ignore case, surrounding whitespace, an optional final period, and an optional `Error Code null:` prefix. Existing context-overflow, authentication, quota, rate-limit, and invalid-request checks retain priority. Other unknown text stays `PI_AI_ERROR`; merely mentioning server errors or websockets does not qualify. Retry eligibility follows the provider's policy through `dsh-llm-retry`, not an unconditional adapter retry.
++
+ Config updates strictly validate changed providers. Initial loading retains stored catalog failures as editable provider diagnostics; unchanged failed providers do not block edits elsewhere. Serviceable models remain selectable, and unresolved models fail before network I/O. Repairing or deleting the offending configuration clears its diagnostic.
+ 
+ Changing `displayName`, `apiKeyEnv`, or `baseURL` without resolving the provider's model errors still rejects the save. For example, renaming an OpenRouter route whose model `111` needs an `api` cannot be saved on its own: repair or remove that model in the same editor draft, then save the complete provider configuration. Intermediate repairs remain in the draft until the whole provider validates; other providers can be saved independently.
+diff --git a/packages/llm/llm-pi-ai/README.zh.md b/packages/llm/llm-pi-ai/README.zh.md
+index ed780ad..7e28d60 100644
+--- a/packages/llm/llm-pi-ai/README.zh.md
++++ b/packages/llm/llm-pi-ai/README.zh.md
+@@ -116,6 +116,8 @@ profile 的 `models` 列表会替换而非扩展路由的已安装目录；每
+ 
+ pi-ai 不提供的路由需要 `api`、`baseURL` 与非空 `models` 列表；无法服务的 profile 会在写入处被拒绝，并点名路由与模型。失败携带稳定 code：无法使用的凭据以 `INVALID_CREDENTIAL` 失败并点名路由与引用，`apiKeyEnv` 引用解析为空的路由以 `MISSING_CREDENTIAL` 失败，未配置模型以 `UNKNOWN_MODEL` 失败，终止性提供方失败则区分 `QUOTA` 与暂时性 `RATE_LIMIT`。`GenerateOptions.stop` 以 `UNSUPPORTED_OPTION` 被拒绝，因为 pi-ai 的通用流式 UI 无法跨提供方保证它。
+ 
++终止错误文本完整匹配 `internal server error` 时映射为 `SERVER`；完整匹配 `Responses websocket ended without a terminal response` 时映射为 `TRANSPORT`，后者可带 `, retry your request` 后缀。这些文本匹配忽略大小写、首尾空白、可选的句末句点及可选的 `Error Code null:` 前缀。现有的上下文溢出、鉴权、额度、限流及无效请求检查保持优先。其他未知文本仍为 `PI_AI_ERROR`；仅提及服务器错误或 websocket 不足以匹配。是否重试由 `dsh-llm-retry` 按提供方策略决定，并非适配器无条件重试。
++
+ Config 更新严格验证发生变化的 provider。初始加载将已存储的目录故障保留为可编辑的 provider 诊断；未更改的故障 provider 不阻止其他编辑。可用模型仍可选择，无法解析的模型在网络 I/O 前失败。修复或删除问题配置会清除其诊断。
+ 
+ 只修改 `displayName`、`apiKeyEnv` 或 `baseURL` 而未解决提供方的模型配置错误时，保存仍会被拒绝。例如，OpenRouter 路由的模型 `111` 缺少 `api` 时，不能单独保存路由名称的修改：需要在同一份编辑草稿中修复或删除该模型，再保存完整的提供方配置。中间修复状态保留在草稿中，直到整条提供方配置通过校验；其他提供方可以独立保存。
+diff --git a/packages/llm/llm-pi-ai/src/stream.ts b/packages/llm/llm-pi-ai/src/stream.ts
+index 30e9c79..fcca54a 100644
+--- a/packages/llm/llm-pi-ai/src/stream.ts
++++ b/packages/llm/llm-pi-ai/src/stream.ts
+@@ -47,7 +47,10 @@ function classifyPiAiError(message: string): string {
+   // same request cannot succeed, so it is invalid, not transient.
+   if (/\b413\b|failed to buffer the request body:\s*length limit exceeded|payload too large|request body too large/i.test(message)) return 'INVALID_REQUEST'
+   if (/\b400\b|invalid.?request/i.test(message)) return 'INVALID_REQUEST'
+-  if (/\b5\d\d\b/.test(message)) return 'SERVER'
++  // Only whole diagnostics (optionally wrapped by pi-ai's Error Code prefix)
++  // qualify here; mentioning a server error or websocket alone is insufficient.
++  const diagnostic = message.replace(/^\s*Error Code null:\s*/i, '').trim()
++  if (/\b5\d\d\b/.test(message) || /^internal server error\.?$/i.test(diagnostic)) return 'SERVER'
+   if (/\btime(?:d)?\s*out\b|timeout/i.test(message)) return 'TIMEOUT'
+   // A stream truncated before the provider's terminal event: each pi-ai provider
+   // throws its own wording when the wire closes mid-response without a terminal
+@@ -55,7 +58,8 @@ function classifyPiAiError(message: string): string {
+   // event`, `… ended without a terminal event`, `Stream ended without
+   // finish_reason`). The connection dropped mid-response, so this is a transport
+   // truncation, not a model-level error.
+-  if (/stream ended (?:before|without)\b/i.test(message)) return 'TRANSPORT'
++  if (/stream ended (?:before|without)\b/i.test(message)
++    || /^Responses websocket ended without a terminal response(?:, retry your request)?\.?$/i.test(diagnostic)) return 'TRANSPORT'
+   if (/\b(?:network|connection|socket|fetch)\b|\bECONN[A-Z]+\b/i.test(message)
+     || /\b(?:other side closed|HTTP2 request did not get a response|WebSocket closed unexpectedly)\b/i.test(message)
+     // undici renders a mid-stream socket drop as a bare `terminated` (its
+@@ -75,7 +79,9 @@ function classifyPiAiError(message: string): string {
+  *   `contextWindow`, and zero-output `length` usage that fills the window map
+  *   to `CONTEXT_WINDOW_EXCEEDED`; a `stop` with no content blocks maps to an
+  *   `EMPTY_RESPONSE` error, while terminal `pending` and `deferred` states map
+- *   to non-retryable `PI_AI_ERROR` failures.
++ *   to non-retryable `PI_AI_ERROR` failures. Whole internal-server-error and
++ *   Responses-websocket-truncation diagnostics map to `SERVER` and `TRANSPORT`
++ *   after the existing context, auth, quota, rate, and invalid-request checks.
+  */
+ export function mapStopReason(message: AssistantMessage, contextWindow?: number): FinishReason {
+   const piAiOverflow = isContextOverflow(message, contextWindow)
+diff --git a/packages/llm/llm-pi-ai/tests/convert.spec.ts b/packages/llm/llm-pi-ai/tests/convert.spec.ts
+index 4ca36d7..bbec1eb 100644
+--- a/packages/llm/llm-pi-ai/tests/convert.spec.ts
++++ b/packages/llm/llm-pi-ai/tests/convert.spec.ts
+@@ -796,14 +796,18 @@ describe('toStreamChunks', () => {
+     expect(chunks[1]).toEqual({ type: 'tool-call-delta', index: 0, id: '', argumentsDelta: '{}' })
+   })
+ 
+-  it('maps error events to error finish chunks (in-stream error style)', async () => {
+-    const error = assistant({ stopReason: 'error', errorMessage: 'boom', usage: usage(1, 0) })
++  it.each([
++    ['boom', 'PI_AI_ERROR'],
++    ['internal server error', 'SERVER'],
++    ['Error Code null: Responses websocket ended without a terminal response, retry your request.', 'TRANSPORT'],
++  ])('maps error event %j to a %s finish chunk', async (errorMessage, code) => {
++    const error = assistant({ stopReason: 'error', errorMessage, usage: usage(1, 0) })
+     const chunks = await collect(toStreamChunks(feed(
+       { type: 'error', reason: 'error', error },
+     )))
+     expect(chunks).toEqual([
+       { type: 'usage', usage: { inputTokens: 1, outputTokens: 0, totalTokens: 1 } },
+-      { type: 'finish', reason: { kind: 'error', failure: { message: 'boom', code: 'PI_AI_ERROR' } } },
++      { type: 'finish', reason: { kind: 'error', failure: { message: errorMessage, code } } },
+     ])
+   })
+ 
+@@ -928,6 +932,72 @@ describe('mapStopReason / mapUsage', () => {
+       .toMatchObject({ kind: 'error', failure: { code: 'TRANSPORT' } })
+   })
+ 
++  it.each([
++    ['internal server error', 'SERVER'],
++    [' Internal Server Error.\n', 'SERVER'],
++    ['Error Code null: internal server error', 'SERVER'],
++    ['Error Code 500: Internal Server Error.', 'SERVER'],
++    ['Responses websocket ended without a terminal response', 'TRANSPORT'],
++    ['Responses websocket ended without a terminal response, retry your request.', 'TRANSPORT'],
++    ['Error Code null: Responses websocket ended without a terminal response, retry your request.', 'TRANSPORT'],
++    ['  ERROR CODE NULL: RESPONSES WEBSOCKET ENDED WITHOUT A TERMINAL RESPONSE.\n', 'TRANSPORT'],
++  ])('classifies the complete diagnostic %j as %s without changing its message', (errorMessage, code) => {
++    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage })))
++      .toEqual({ kind: 'error', failure: { message: errorMessage, code } })
++  })
++
++  it.each([
++    'internal error',
++    'server error',
++    'internal server errors',
++    'not an internal server error',
++    'internal server error handling failed',
++    'Error Code null: unknown error, retry your request.',
++    'Error Code null: internal server error details unavailable',
++    'Error Code 404: internal server error',
++    'Error Code unknown: internal server error',
++    'Responses websocket error',
++    'Responses websocket ended',
++    'websocket ended without a terminal response',
++    'Responses websocket ended with a terminal response',
++    'Responses websocket ended without a terminal responses',
++    'Not true: Responses websocket ended without a terminal response',
++    'Responses websocket ended without a terminal response handler',
++    'Responses websocket ended without a terminal response, do not retry your request.',
++  ])('keeps near-miss or unknown diagnostic %j non-retryable', (errorMessage) => {
++    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage })))
++      .toEqual({ kind: 'error', failure: { message: errorMessage, code: 'PI_AI_ERROR' } })
++  })
++
++  describe.each([
++    'internal server error',
++    'Responses websocket ended without a terminal response, retry your request.',
++  ])('preserves classification precedence over %j', (diagnostic) => {
++    it.each([
++      ['401', 'AUTH'],
++      ['403', 'AUTH'],
++      ['413', 'INVALID_REQUEST'],
++      ['400', 'INVALID_REQUEST'],
++      ['429', 'RATE_LIMIT'],
++      ['503', 'SERVER'],
++    ])('honors Error Code %s', (status, code) => {
++      const errorMessage = `Error Code ${status}: ${diagnostic}`
++      expect(mapStopReason(assistant({ stopReason: 'error', errorMessage })))
++        .toEqual({ kind: 'error', failure: { message: errorMessage, code } })
++    })
++
++    it.each([
++      ['HTTP 400: input exceeds the model context window limit', CONTEXT_WINDOW_EXCEEDED_CODE],
++      ['HTTP 429: insufficient_quota', 'QUOTA'],
++      ['Failed to buffer the request body: length limit exceeded', 'INVALID_REQUEST'],
++      ['invalid request', 'INVALID_REQUEST'],
++    ])('preserves %j when the transient diagnostic is also present', (prefix, code) => {
++      const errorMessage = `${prefix}; ${diagnostic}`
++      expect(mapStopReason(assistant({ stopReason: 'error', errorMessage })))
++        .toEqual({ kind: 'error', failure: { message: errorMessage, code } })
++    })
++  })
++
+   it('uses pi-ai provider-specific overflow classification without losing rate-limit exclusions', () => {
+     expect(mapStopReason(assistant({
+       stopReason: 'error',
+diff --git a/packages/llm/llm-pi-ai/tests/loader-composition.spec.ts b/packages/llm/llm-pi-ai/tests/loader-composition.spec.ts
+index e9d1699..958779a 100644
+--- a/packages/llm/llm-pi-ai/tests/loader-composition.spec.ts
++++ b/packages/llm/llm-pi-ai/tests/loader-composition.spec.ts
+@@ -110,6 +110,37 @@ describe('llm-pi-ai real dormant composition', () => {
+     expect(server.headers[0]?.authorization).toBe('Bearer key-from-store')
+   })
+ 
++  it('classifies explicit Responses error diagnostics without retrying direct calls', async () => {
++    vi.stubEnv('PI_COMPOSITION_KEY', '')
++    const cases = [
++      ['internal server error', 'SERVER'],
++      ['Responses websocket ended without a terminal response, retry your request.', 'TRANSPORT'],
++      ['Responses websocket error', 'PI_AI_ERROR'],
++    ] as const
++    const server = await mockServer(cases.map(([message]) => ({
++      events: [JSON.stringify({ type: 'error', code: null, message })],
++    })))
++    const { ctx, settingsPath } = await loadComposition()
++    await writeFile(settingsPath, [
++      '- id: llm-pi-ai',
++      '  config:',
++      '    providers:',
++      '      openai:',
++      '        apiKeyEnv: PI_COMPOSITION_KEY',
++      `        baseURL: ${server.url}/v1`,
++      '',
++    ].join('\n'))
++    await vi.waitFor(() => {
++      expect(ctx.llm.listProviders().map(provider => provider.id)).toEqual(['openai'])
++    }, { timeout: 5000 })
++
++    for (const [message, code] of cases) {
++      const result = await assemble(ctx, { provider: 'openai', model: 'gpt-4.1', messages: [] })
++      expect(result.finish).toEqual({ kind: 'error', failure: { message: `Error Code null: ${message}`, code } })
++    }
++    expect(server.paths).toEqual(cases.map(() => '/v1/responses'))
++  })
++
+   it('uses settings-only route headers for model discovery', async () => {
+     vi.stubEnv('PI_COMPOSITION_KEY', '')
+     const server = await mockServer([{ body: JSON.stringify({ data: [{ id: 'acme-private' }] }) }])
+diff --git a/packages/session/session-format-catalog/tests/legacy-metadata.spec.ts b/packages/session/session-format-catalog/tests/legacy-metadata.spec.ts
+new file mode 100644
+index 0000000..bcd18d1
+--- /dev/null
++++ b/packages/session/session-format-catalog/tests/legacy-metadata.spec.ts
+@@ -0,0 +1,107 @@
++import { describe, expect, it } from 'vitest'
++import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
++import { SessionFormatUnsupportedMigrationError } from '@deepseek-ai/dsh-session-format'
++import type { SessionFormatJsonObject } from '@deepseek-ai/dsh-session-format'
++import { createSessionFormatCatalogWithChildren } from '../src/index.ts'
++
++const descriptor: SessionFormatJsonObject = {
++  version: 2, mode: 'continuable', provider: 'fork', label: 'synthetic child',
++  agentProvider: 'synthetic-provider', agentModel: 'synthetic-model', persona: 'synthetic persona',
++  toolFilter: { allow: ['read', 'glob'], deny: ['write'] },
++}
++const source = { kind: 'instruction-hint', plugin: 'anchored-tool-bootstrap' }
++const message = { id: 'synthetic-hint', role: 'user', content: [{ type: 'text', text: 'Synthetic hint.' }], source }
++
++function rows(data: SessionFormatJsonObject, hint: SessionFormatJsonObject = source) {
++  return [
++    { type: 'turn/start', data: { turn: 1 } },
++    { type: 'subagent/descriptor', data },
++    { type: 'step/start', data: { turn: 1, step: 1 } },
++    { type: 'user/message', data: { ...message, source: hint }, surfaceOp: 'append' },
++    { type: 'step/end', data: { turn: 1, step: 1 } },
++    { type: 'turn/end', data: { turn: 1, reason: { kind: 'completed' } } },
++  ].map((row, seq) => ({ ...row, seq, time: seq + 2 }))
++}
++
++function restore(version: number, input: readonly unknown[], validation: 'current' | 'transformed' = 'current') {
++  const reader = createSessionFormatCatalogWithChildren([]).createRestore({
++    type: 'session', version, id: 'synthetic-legacy-metadata', createdAt: 1, delegationDepth: 0,
++    ...(version >= 2 ? { isSeeded: false } : {}),
++  }, { recovery: 'strict', validation })
++  for (const row of input) reader.decodeRow(row)
++  return reader.finish()
++}
++
++function freeze<T>(value: T): T {
++  if (value !== null && typeof value === 'object') {
++    Object.values(value).forEach(freeze)
++    Object.freeze(value)
++  }
++  return value
++}
++
++describe('exact released metadata through the current catalog', () => {
++  it.each(['current', 'transformed'] as const)('promotes descriptor v2 without changing composition (%s)', (validation) => {
++    const input = freeze(rows(descriptor))
++    const before = JSON.stringify(input)
++    const output = restore(0, input, validation)
++    expect(output.header.version).toBe(SESSION_FORMAT_VERSION)
++    expect(output.events.find(event => event.type === 'subagent/descriptor')).toEqual({
++      ...input[1], data: { ...descriptor, version: 3 },
++    })
++    expect(output.events.find(event => event.type === 'subagent/descriptor')?.data).not.toHaveProperty('agentReasoningEffort')
++    expect(output.events.find(event => event.type === 'user/message')?.data).toEqual(message)
++    expect(output).toEqual(restore(0, rows({ ...descriptor, version: 3 }), validation))
++    expect(JSON.stringify(input)).toBe(before)
++  })
++
++  it.each([
++    { version: 2, mode: 'one-shot', provider: 'spawn' },
++    { version: 2, mode: 'one-shot', provider: 'spawn', label: '' },
++    { version: 2, mode: 'continuable', provider: 'spawn', label: 'minimal child' },
++  ])('retains optional-field absence for descriptor %j', (data) => {
++    const output = restore(0, rows(data))
++    expect(output.events.find(event => event.type === 'subagent/descriptor')?.data).toEqual({ ...data, version: 3 })
++  })
++
++  it.each([0, 1, 2])('preserves the exact hint attribution from format v%i', (version) => {
++    const input = freeze(rows({ ...descriptor, version: 3 }))
++    const output = restore(version, input)
++    expect(output.events.filter(event => event.type === 'user/message')).toHaveLength(1)
++    expect(output.events.find(event => event.type === 'user/message')?.data).toEqual(message)
++    const reopened = restore(SESSION_FORMAT_VERSION, output.events)
++    expect(reopened).toEqual(output)
++  })
++
++  it.each([
++    { ...descriptor, extra: true },
++    { ...descriptor, agentReasoningEffort: 'high' },
++    { ...descriptor, toolFilter: { allow: ['read'], extra: true } },
++    { ...descriptor, mode: 'one-shot' },
++    { ...descriptor, mode: 'unknown' },
++    { ...descriptor, provider: '' },
++    { ...descriptor, label: '' },
++    { ...descriptor, agentModel: null },
++    { ...descriptor, toolFilter: { allow: [''] } },
++    ...[0, 1, 4, 99, '2'].map(version => ({ ...descriptor, version })),
++  ])('refuses unaudited or invalid descriptor metadata %j', (data) => {
++    expect(() => restore(0, rows(data))).toThrow(SessionFormatUnsupportedMigrationError)
++  })
++
++  it('does not invent a missing provider/model partner', () => {
++    const { agentModel: _model, ...unpaired } = descriptor
++    expect(() => restore(0, rows(unpaired))).toThrow(/must be paired/)
++  })
++
++  it.each([
++    { ...source, extra: true },
++    { ...source, sourceEventSeq: 0 },
++    { ...source, plugin: 'other-plugin' },
++    { kind: 'instruction-hint' },
++    { ...source, kind: 'other-source' },
++  ])('refuses unknown source constants or fields %j', (hint) => {
++    for (const version of [0, 1, 2]) {
++      expect(() => restore(version, rows({ ...descriptor, version: 3 }, hint))).toThrow(SessionFormatUnsupportedMigrationError)
++    }
++  })
++})
+diff --git a/packages/session/session-format-v0-to-v1/README.i18n.yaml b/packages/session/session-format-v0-to-v1/README.i18n.yaml
+index f5d06ed..cbc58d7 100644
+--- a/packages/session/session-format-v0-to-v1/README.i18n.yaml
++++ b/packages/session/session-format-v0-to-v1/README.i18n.yaml
+@@ -21,8 +21,8 @@
+   en: 7e0ddf0932b414b4
+   zh: 4bf4dd76d465e490
+ /deepseek-ai-dsh-session-format-v0-to-v1/use-this-package/entry-point:
+-  en: 12e0858e80044921
+-  zh: 88b4e9709ce24d7d
++  en: 9f71ae1ae07ae493
++  zh: c0691040859e588c
+ /deepseek-ai-dsh-session-format-v0-to-v1/understand-the-implementation:
+   en: c0cf5fae48838078
+   zh: 958edf61dabcbaba
+diff --git a/packages/session/session-format-v0-to-v1/README.md b/packages/session/session-format-v0-to-v1/README.md
+index 2ff830f..b584a47 100644
+--- a/packages/session/session-format-v0-to-v1/README.md
++++ b/packages/session/session-format-v0-to-v1/README.md
+@@ -44,7 +44,9 @@ const targetInheritedEventCount = stage.finish(migrationContext)
+ 
+ The alpha edge refuses every event type outside its frozen inventory, including an unknown event marked `ignorable: true`. It also refuses unexpected payload members. `tool/result.meta` and nested PTC `arguments` remain explicit opaque JSON fields and are preserved without Session-sequence interpretation. Unknown content-block `type`, message-source `kind`, assistant finish-reason `kind`, and `turn/end` reason `kind` arms remain owner-opaque JSON while their known arms receive structural validation.
+ 
+-The bounded historical normalizers convert `steering/message` to `user/message`, rename `compact/*` events to `compaction/*`, remove `turn/start.trigger`, convert retired `turn/end` reasons, add current message wrappers and deterministic ids for legacy messages, retry chains, and compaction groups, and remove the obsolete `request/header.header.messagePrefix` duplicate. Retired `request/header-delta`, `mode/set`, and the `request/header` fallback reason refuse migration. No other event, reference, source, or payload fact may change.
++The bounded historical normalizers convert `steering/message` to `user/message`, rename `compact/*` events to `compaction/*`, remove `turn/start.trigger`, convert retired `turn/end` reasons, add current message wrappers and deterministic ids for legacy messages, retry chains, and compaction groups, and remove the obsolete `request/header.header.messagePrefix` duplicate. Retired `request/header-delta`, `mode/set`, and the `request/header` fallback reason refuse migration. No other event, reference, source, or payload fact may change except the descriptor promotion below.
++
++A released `subagent/descriptor` with descriptor `version: 2` is promoted to `version: 3` only after exact v2 member admission; it must also satisfy the existing v3 value validation. One-shot records admit only `mode`, `version`, `provider`, and optional `label`; continuable records additionally admit `agentProvider`, `agentModel`, `persona`, and `toolFilter`, with a required label. Every original value remains unchanged, and `agentReasoningEffort` remains absent. Extra fields, other unsupported versions, invalid values, and unpaired provider/model fields refuse migration rather than receiving invented defaults.
+ 
+ -----
+ 
+diff --git a/packages/session/session-format-v0-to-v1/README.zh.md b/packages/session/session-format-v0-to-v1/README.zh.md
+index 057109a..9058842 100644
+--- a/packages/session/session-format-v0-to-v1/README.zh.md
++++ b/packages/session/session-format-v0-to-v1/README.zh.md
+@@ -44,7 +44,9 @@ const targetInheritedEventCount = stage.finish(migrationContext)
+ 
+ Alpha 迁移边会拒绝冻结清单之外的所有事件类型，包括带有 `ignorable: true` 标记的未知事件。它也会拒绝意外的 payload 成员。`tool/result.meta` 与嵌套 PTC `arguments` 是显式的不透明 JSON 字段；迁移会原样保留它们，不把其中的数字解释为会话序号。内容块中未知的 `type` 分支、消息来源中未知的 `kind` 分支、assistant 结束原因中未知的 `kind` 分支与 `turn/end` 原因中未知的 `kind` 分支保持 owner-opaque JSON，已知分支则接受结构校验。
+ 
+-有限的历史规范化会把 `steering/message` 转换为 `user/message`、把 `compact/*` 事件重命名为 `compaction/*`、移除 `turn/start.trigger`、转换已停用的 `turn/end` reason、添加当前消息包装层，并为旧消息、retry chain 与压缩（compaction）组补充确定性 id，同时移除已停用且重复的 `request/header.header.messagePrefix`。已停用的 `request/header-delta`、`mode/set` 和 `request/header` fallback reason 会使迁移失败。除此之外，任何事件、引用、来源或 payload 事实都不得改变。
++有限的历史规范化会把 `steering/message` 转换为 `user/message`、把 `compact/*` 事件重命名为 `compaction/*`、移除 `turn/start.trigger`、转换已停用的 `turn/end` reason、添加当前消息包装层，并为旧消息、retry chain 与压缩（compaction）组补充确定性 id，同时移除已停用且重复的 `request/header.header.messagePrefix`。已停用的 `request/header-delta`、`mode/set` 和 `request/header` fallback reason 会使迁移失败。除下述描述符版本提升外，任何其他事件、引用、来源或 payload 事实都不得改变。
++
++已发布的 `subagent/descriptor` 若描述符 `version: 2` 通过精确的 v2 成员检查，便会提升为 `version: 3`；它还必须满足现有 v3 值校验。一次性记录仅允许 `mode`、`version`、`provider` 和可选 `label`；可续接记录还允许 `agentProvider`、`agentModel`、`persona` 和 `toolFilter`，且必须有 label。所有原始值保持不变，`agentReasoningEffort` 仍然缺省。额外字段、其他不支持的版本、无效值和未配对的 provider/model 字段会使迁移失败，不会获得臆造的默认值。
+ 
+ -----
+ 
+diff --git a/packages/session/session-format-v0-to-v1/src/migration.ts b/packages/session/session-format-v0-to-v1/src/migration.ts
+index 0a4ead8..9f84624 100644
+--- a/packages/session/session-format-v0-to-v1/src/migration.ts
++++ b/packages/session/session-format-v0-to-v1/src/migration.ts
+@@ -95,13 +95,28 @@ function normalizeReleasedV0Event(
+   const steering = normalizeLegacySteering(header, sessionId)
+   const retry = normalizeLegacyRetry(steering, sessionId, state.retryIds)
+   const compaction = normalizeLegacyCompaction(retry, sessionId, state)
+-  const message = normalizeLegacyMessage(compaction, sessionId, state.messageIds)
++  const descriptor = normalizeLegacySubagentDescriptor(compaction)
++  const message = normalizeLegacyMessage(descriptor, sessionId, state.messageIds)
+   if (message.type !== 'assistant/chunk') assertReleasedEventPayload(message, 0)
+   const messageId = eventMessageId(message)
+   if (messageId !== undefined) state.messageIds.set(message.seq, messageId)
+   return message
+ }
+ 
++/** Promote only the released v2 descriptor fields; ordinary v3 validation still applies afterward. */
++function normalizeLegacySubagentDescriptor(event: SessionFormatEvent): SessionFormatEvent {
++  if (event.type !== 'subagent/descriptor') return event
++  const data = releasedV0Record(event.data, `subagent/descriptor ${event.seq} data`)
++  if (data['version'] !== 2) return event
++  assertReleasedV0Keys(
++    data,
++    ['mode', 'version', 'provider'],
++    data['mode'] === 'one-shot' ? ['label'] : ['label', 'agentProvider', 'agentModel', 'persona', 'toolFilter'],
++    `subagent/descriptor ${event.seq} version 2 data`,
++  )
++  return { ...event, data: { ...data, version: 3 } }
++}
++
+ function normalizeLegacyCompactionType(event: SessionFormatEvent): SessionFormatEvent {
+   const type: string = event.type
+   switch (type) {
+diff --git a/packages/session/session-format-v2-to-v3/README.i18n.yaml b/packages/session/session-format-v2-to-v3/README.i18n.yaml
+index 1ab0cb5..f60a422 100644
+--- a/packages/session/session-format-v2-to-v3/README.i18n.yaml
++++ b/packages/session/session-format-v2-to-v3/README.i18n.yaml
+@@ -45,8 +45,8 @@
+   en: deb9d987126fea8b
+   zh: f332e6746753b34a
+ /deepseek-ai-dsh-session-format-v2-to-v3/v2-to-v3-specification/source-audit-and-refusal:
+-  en: 32a16980bf3b1090
+-  zh: aebed8681dcfbeca
++  en: 121e35ea7b08447b
++  zh: 83ea9437c38dd4e0
+ /deepseek-ai-dsh-session-format-v2-to-v3/native-v3-admission:
+   en: 2f9127759a38289f
+   zh: d3c7b539f5e3c670
+diff --git a/packages/session/session-format-v2-to-v3/README.md b/packages/session/session-format-v2-to-v3/README.md
+index 3f3fe72..21f025e 100644
+--- a/packages/session/session-format-v2-to-v3/README.md
++++ b/packages/session/session-format-v2-to-v3/README.md
+@@ -119,6 +119,8 @@ A V2 `session-log-deepseek/delivery-accepted` with `data.sessionFormatVersion ==
+ 
+ Migration classifies the [released V2 event inventory](../session-format-v1-to-v2/src/dispositions.ts), including log-only `assistant/attempt`, plus `feedback/message-put` and `feedback/message-delete`. The [payload validator](src/payload.ts) applies exact admitted envelope and payload members and released nested validation. Unknown events, even ignorable ones, and unaudited members at checked records are refused. Message-source classification covers the five Message slots below: unknown source kinds are refused, while agent relay attribution is admitted without interpreting ids as Session references.
+ 
++Only `user/message.data.source` additionally admits the exact historical record `{ kind: 'instruction-hint', plugin: 'anchored-tool-bootstrap' }`. Both fields are preserved without reinterpretation or coordinate remapping. Missing or extra fields, another plugin value, and this source in other Message slots remain refused; this exception does not admit arbitrary instruction-hint producers.
++
+ The content audit admits exactly `text`, `reasoning`, `image`, `file`, `tool-call`, and `tool-result`. It validates owned block fields and recursively audits every nested `tool-result.content` in this finite set of positions:
+ 
+ | Owner | Audited content |
+diff --git a/packages/session/session-format-v2-to-v3/README.zh.md b/packages/session/session-format-v2-to-v3/README.zh.md
+index 8f26cfc..0a61c76 100644
+--- a/packages/session/session-format-v2-to-v3/README.zh.md
++++ b/packages/session/session-format-v2-to-v3/README.zh.md
+@@ -119,6 +119,8 @@ V2 `session-log-deepseek/delivery-accepted` 若携带 `data.sessionFormatVersion
+ 
+ 迁移分类[已发布 V2 事件清单](../session-format-v1-to-v2/src/dispositions.ts)，包括仅日志的 `assistant/attempt`，以及 `feedback/message-put` 和 `feedback/message-delete`。[载荷校验器](src/payload.ts)应用精确的已接纳信封和载荷成员，以及已发布嵌套校验。未知事件（即使可忽略）以及被检查记录中未经审计的成员均被拒绝。消息来源分类覆盖下表的五个消息位置：未知来源种类会被拒绝，agent（智能体）中继归属则被接纳，但标识不会被解释为会话引用。
+ 
++仅 `user/message.data.source` 额外接纳精确的历史记录 `{ kind: 'instruction-hint', plugin: 'anchored-tool-bootstrap' }`。两个字段均原样保留，不重新解释，也不重映射坐标。缺失或额外字段、其他 plugin 值，以及其他 Message 位置中的此来源仍被拒绝；此例外不接纳任意 instruction-hint 生产者。
++
+ 内容审计仅接纳 `text`、`reasoning`、`image`、`file`、`tool-call` 和 `tool-result`。它校验归本格式所有的块字段，并在以下有限位置递归审计每层嵌套的 `tool-result.content`：
+ 
+ | 所有者 | 审计内容 |
+diff --git a/packages/session/session-format-v2-to-v3/src/payload.ts b/packages/session/session-format-v2-to-v3/src/payload.ts
+index 3aa2add..9ccf3d3 100644
+--- a/packages/session/session-format-v2-to-v3/src/payload.ts
++++ b/packages/session/session-format-v2-to-v3/src/payload.ts
+@@ -78,7 +78,7 @@ export function assertEvent(event: SessionFormatEvent, version: 2 | 3): void {
+     throw new SessionFormatError('session/end-seed inherited must be true')
+   }
+   // Source classification applies only to Harness messages, not team delivery envelopes.
+-  if (event.type === 'user/message') assertSource(data)
++  if (event.type === 'user/message') assertSource(data, true)
+   if (event.type === 'assistant/message' || event.type === 'tool/result') assertSource(record(data['message'], 'message'))
+   if (event.type === 'tool/result' && isSessionFormatJsonObject(data['error']) && data['error']['code'] === 'TOOL_NOT_STARTED') {
+     const message = record(data['message'], 'tool result message')
+@@ -107,8 +107,14 @@ export function isRepairIdentity(id: SessionFormatJsonValue | undefined, callId:
+   return /^(0|[1-9]\d*)$/.test(suffix) && Number.isSafeInteger(Number(suffix))
+ }
+ 
+-function assertSource(message: SessionFormatJsonObject): void {
++function assertSource(message: SessionFormatJsonObject, allowInstructionHint = false): void {
+   const source = record(message['source'], 'message source')
++  // This released user/message attribution has no coordinates; preserve both literal fields.
++  if (allowInstructionHint && source['kind'] === 'instruction-hint'
++    && source['plugin'] === 'anchored-tool-bootstrap') {
++    keys(source, ['kind', 'plugin'], [], 'instruction-hint source')
++    return
++  }
+   if (typeof source['kind'] !== 'string' || !SOURCE_KINDS.has(source['kind'])) {
+     throw new SessionFormatUnsupportedMigrationError('cannot safely transform unclassified message source')
+   }
+diff --git a/packages/session/session-format-v2-to-v3/tests/admission.spec.ts b/packages/session/session-format-v2-to-v3/tests/admission.spec.ts
+index 275e560..7ad2998 100644
+--- a/packages/session/session-format-v2-to-v3/tests/admission.spec.ts
++++ b/packages/session/session-format-v2-to-v3/tests/admission.spec.ts
+@@ -58,6 +58,16 @@ describe('durable V3 admission failures', () => {
+     expect(() =>{  assertEvent(extension, 2) }).toThrow(/unclassified/)
+   })
+ 
++  it('admits exact instruction-hint attribution only in released user messages', () => {
++    const hint = { ...user, source: { kind: 'instruction-hint', plugin: 'anchored-tool-bootstrap' } }
++    const output = migrate([...opening, event('user/message', hint, { surfaceOp: 'append' })])
++    expect(output.events.at(-1)?.data).toEqual(hint)
++    expect(() => restoreReleasedV3Artifact(output, new Set())).not.toThrow()
++    expect(() => { assertEvent(event('agent/inbox/spliced', {
++      target: 'next-step', start: 0, inserted: [hint],
++    }), 2) }).toThrow(/unclassified message source/)
++  })
++
+   it.each([0, -1, 1.5])('rejects invalid system step coordinates %s', (step) => {
+     expect(() => releasedV3SessionFormatCodec.encodeEvent(event('system/message', { ...system, step }, { surfaceOp: 'append' }))).toThrow()
+   })
+diff --git a/packages/session/session-persistence-jsonl/tests/legacy-metadata.spec.ts b/packages/session/session-persistence-jsonl/tests/legacy-metadata.spec.ts
+new file mode 100644
+index 0000000..fc2b74b
+--- /dev/null
++++ b/packages/session/session-persistence-jsonl/tests/legacy-metadata.spec.ts
+@@ -0,0 +1,99 @@
++/** Artificial metadata only: no copied Session text or historical user data. */
++import { Context } from '@deepseek-ai/cordis'
++import { SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
++import { SessionFormatUnsupportedError } from '@deepseek-ai/dsh-session-persistence'
++import type { SessionFormatJsonObject } from '@deepseek-ai/dsh-session-format'
++import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
++import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { basename, dirname, join } from 'node:path'
++import { afterEach, describe, expect, it } from 'vitest'
++import { generationLogPath, type JsonlCompression } from '../src/format.ts'
++import { compressZstdFrame } from '../src/zstd.ts'
++
++const roots: string[] = []
++const contexts: Context[] = []
++const id = SessionId('synthetic-legacy-metadata')
++const descriptor = {
++  version: 2, mode: 'continuable', provider: 'fork', label: 'synthetic child',
++  agentProvider: 'mock', agentModel: 'mock', persona: 'synthetic persona',
++  toolFilter: { allow: ['read'], deny: ['write'] },
++}
++const source = { kind: 'instruction-hint', plugin: 'anchored-tool-bootstrap' }
++const message = { id: 'synthetic-hint', role: 'user', content: [{ type: 'text', text: 'Synthetic hint.' }], source }
++
++afterEach(async () => {
++  try {
++    await Promise.all(contexts.splice(0).map(ctx => ctx.fiber.dispose()))
++  } finally {
++    await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true })))
++  }
++})
++
++async function seed(compression: JsonlCompression, data: SessionFormatJsonObject = descriptor, hint: SessionFormatJsonObject = source) {
++  const root = await mkdtemp(join(tmpdir(), 'dsh-synthetic-legacy-metadata-'))
++  roots.push(root)
++  const path = generationLogPath(root, undefined, id, 0, compression)
++  const header = { type: 'session', version: 0, id, createdAt: 1, delegationDepth: 0 }
++  const rows = [
++    { type: 'turn/start', data: { turn: 1 } },
++    { type: 'subagent/descriptor', data },
++    { type: 'step/start', data: { turn: 1, step: 1 } },
++    { type: 'user/message', surfaceOp: 'append', data: { ...message, source: hint } },
++    { type: 'step/end', data: { turn: 1, step: 1 } },
++    { type: 'turn/end', data: { turn: 1, reason: { kind: 'completed' } } },
++  ].map((row, seq) => ({ ...row, seq, time: seq + 2 }))
++  const headerLine = JSON.stringify(header) + '\n'
++  const body = rows.map(row => JSON.stringify(row)).join('\n') + '\n'
++  const bytes = compression === 'none' ? Buffer.from(headerLine + body) : Buffer.concat([
++    await compressZstdFrame(headerLine), await compressZstdFrame(body),
++  ])
++  await mkdir(dirname(path), { recursive: true })
++  await writeFile(path, bytes)
++  const ctx = new Context()
++  contexts.push(ctx)
++  await ctx.plugin(JsonlSessionPersistence, { root, compression })
++  return { root, path, bytes, ctx }
++}
++
++async function read(ctx: Context, access: 'read' | 'write') {
++  const handle = await ctx.sessionPersistence.open(id, access)
++  try {
++    return { header: handle.header, ...(await handle.read()) }
++  } finally {
++    await handle.close()
++  }
++}
++
++describe('historical metadata publication', () => {
++  it.each(['none', 'zstd'] as const)('preserves source bytes through read, publish and reopen (%s)', async (compression) => {
++    const { root, path, bytes, ctx } = await seed(compression)
++    const prepared = await read(ctx, 'read')
++    expect(prepared.header.version).toBe(SESSION_FORMAT_VERSION)
++    expect(prepared.events.find(event => event.type === 'subagent/descriptor')?.data).toEqual({ ...descriptor, version: 3 })
++    expect(prepared.events.find(event => event.type === 'subagent/descriptor')?.data).not.toHaveProperty('agentReasoningEffort')
++    expect(prepared.events.find(event => event.type === 'user/message')?.data).toEqual(message)
++    expect(await readFile(path)).toEqual(bytes)
++    expect(await readdir(dirname(path))).toEqual([basename(path)])
++    const published = await read(ctx, 'write')
++    expect(published.events).toEqual(prepared.events)
++    expect((await read(ctx, 'read')).events).toEqual(prepared.events)
++    expect(await readFile(path)).toEqual(bytes)
++    const target = generationLogPath(root, undefined, id, SESSION_FORMAT_VERSION, compression)
++    expect((await readdir(dirname(path))).filter(name => name !== 'session.lock').sort()).toEqual([basename(path), basename(target)].sort())
++  })
++
++  it.each([
++    { name: 'descriptor extra field', data: { ...descriptor, extra: true }, hint: source },
++    { name: 'unknown descriptor version', data: { ...descriptor, version: 4 }, hint: source },
++    { name: 'hint extra coordinate', data: descriptor, hint: { ...source, sourceEventSeq: 0 } },
++    { name: 'hint wrong plugin', data: descriptor, hint: { ...source, plugin: 'other-plugin' } },
++  ])('refuses $name without writing a successor', async ({ data, hint }) => {
++    const { path, bytes, ctx } = await seed('none', data, hint)
++    for (const access of ['read', 'write'] as const) {
++      await expect(read(ctx, access)).rejects.toBeInstanceOf(SessionFormatUnsupportedError)
++      expect(await readFile(path)).toEqual(bytes)
++      expect((await readdir(dirname(path))).filter(name => name !== 'session.lock')).toEqual([basename(path)])
++    }
++  })
++})

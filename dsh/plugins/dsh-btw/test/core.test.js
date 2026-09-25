@@ -23,7 +23,7 @@ test("forkCut ends after completed-turn interstitial events and before the in-fl
     event(6, "user/message", { content: [{ type: "text", text: "ongoing work" }] }),
     event(7, "assistant/chunk"),
   ]
-  assert.deepEqual(forkCut(events), { lastTurnEnd: events[2], cut: 5 })
+  assert.deepEqual(forkCut(events), { lastTurnEndIndex: 2, cut: 5 })
   assert.equal(inflightTextOf(events, 2), "ongoing work")
 })
 
@@ -33,7 +33,7 @@ test("forkCut refuses a session without a completed turn", () => {
 
 test("latest model selection preserves the logged route and reasoning effort", () => {
   const selected = latestModelSelection([
-    event(0, "request/header", { config: { provider: "p", model: "m", reasoningEffort: "high" } }),
+    event(0, "request/header", { header: { config: { provider: "p", model: "m", reasoningEffort: "high" } } }),
   ], { provider: "fallback", model: "fallback" })
   assert.deepEqual(selected, { provider: "p", model: "m", reasoningEffort: "high" })
 })
@@ -59,9 +59,10 @@ test("pinReadOnly uses the four-argument command API and verifies both projectio
       },
     },
     get(name) {
+      if (name === "approval") return { overrideOf() { return "never" }, config: {} }
       if (name === "permissionPresets") {
         return {
-          resolve(value) { assert.equal(value, "read-only") },
+          resolve(value) { assert.equal(value, "read-only"); return { sandbox: "read-only", approval: "never" } },
           current(value) { assert.equal(value, session); return "read-only" },
         }
       }
@@ -80,7 +81,7 @@ test("pinReadOnly fails closed when the permission command is missing", async ()
   const ctx = {
     commands: { async execute() { return undefined } },
     get(name) {
-      if (name === "permissionPresets") return { resolve() {}, current() { return "read-only" } }
+      if (name === "permissionPresets") return { resolve() { return { sandbox: "read-only", approval: "never" } }, current() { return "read-only" } }
       if (name === "sandboxPolicy") return { resolve() { return { mode: "read-only" } } }
       return undefined
     },
@@ -94,7 +95,7 @@ test("pinReadOnly fails closed when the effective sandbox is not read-only", asy
   const ctx = {
     commands: { async execute() { return { result: { kind: "success", text: "preset read-only" } } } },
     get(name) {
-      if (name === "permissionPresets") return { resolve() {}, current() { return "read-only" } }
+      if (name === "permissionPresets") return { resolve() { return { sandbox: "read-only", approval: "never" } }, current() { return "read-only" } }
       if (name === "sandboxPolicy") return { resolve() { return { mode: "workspace-write" } } }
       return undefined
     },

@@ -1,56 +1,61 @@
 # dsh-btw
 
-`/btw <问题>` 在主 agent 忙碌时创建旁路问答子会话：它继承主会话截至最近已完成回合的上下文，在验证真实只读策略后并行回答，不打断、不 steer、也不排队进主会话。
+`/btw <问题>` 在主 agent 忙碌时创建旁路问答子会话：继承截至最近已完成回合的上下文，在验证真实只读策略后并行回答，不打断、不 steer、也不排队进主会话。
 
 ## 兼容目标
 
-- 插件版本：**0.2.0**
-- 目标 DSH：**0.1.2-rc.1**
-- 本版本不兼容旧的 `Session.events` / `seedLength` / `resolveSessionPreset` 路径；已改用 rc1 的 `snapshotEvents()`、`inheritedEventCount`、`meta.isSeeded` 与 `agentPreset` projection。
+- 插件 **0.3.0**，目标 DSH **0.1.7-rc.2 / Session format 4**。不支持旧 rc.1 的请求头格式；不承诺未经验证的后续版本兼容。
+- 使用 `sessionQuery.observeSession(..., {projectionMode: 'all'})` 获取同一切点的逻辑事件与 preset projection，并释放 observation。不会把 JSONL 压缩行索引当成逻辑事件 seq。
+- 通过宿主 `@deepseek-ai/dsh-session/fork` 的 `buildForkSeed()` 生成继承标记；`inheritedEventCount` 只计复制的父事件，不计新增 `session/end-seed`。
+- Host 依赖由 DSH 提供：`dsh-llm`、`dsh-agent`、`dsh-session/fork`，以及 commands、agents、sessionQuery、agentPresets、permissionPresets、approval、sandboxPolicy 等服务。不捆绑另一份宿主单例。
 
-## 行为和安全保证
+## 行为与安全
 
-- fork seed 仅包含源会话的**全部已完成回合**及其后的回合间事件，止于下一个 `turn/start` 之前；进行中回合的半成品 assistant 输出不会进入 seed。
-- 进行中回合的最新 user 文本仅作为“主会话正在进行中的任务”提示加入子会话第一条消息。
-- 子会话继承 cwd、工作区挂接、当前 agent preset、模型路由及 fork 血缘。
-- 创建元数据使用 rc1 的 `meta: { parentSession, isSeeded: true }`，精确切点使用顶层 `inheritedEventCount`，不手写旧持久化字段。
-- 子会话在投递问题前执行正确的四参数命令调用：`commands.execute(child, '/permission read-only', [], signal)`。
-- 随后同时核实 `permissionPresets.current(child.session) === 'read-only'` 和 `sandboxPolicy.resolve({ session }).mode === 'read-only'`。
-- 任一权限服务、命令、projection、sandbox policy、工作区挂接或投递步骤失败时，插件 **fail closed**：不投递问题，并通过持有的 `AgentHandle.dispose()` 回滚子会话；已挂接工作区也会先尝试 detach。
-- 子会话是普通 fork 会话，显示为 `btw: <问题摘要>`，可在会话列表查看并继续追问。
-
-## 使用
-
-1. 主会话正在执行任务时，在 composer 输入 `/btw <问题>`。
-2. 收到成功提示后，在会话列表打开 `btw: ...`。
-3. 若只读能力无法验证，会收到失败提示；该问题不会投递。
+- seed 包含源会话的全部已完成回合和其后回合间事件；遇到下一个 `turn/start`、`user/message` 的 `surfaceOp: append` 或 `agent/inbox/spliced` 停止。进行中 assistant 半成品不会进入 seed。
+- 最新进行中 user 文本只作为“主会话正在进行中的任务”提示加入第一条问题。继承 cwd、工作区挂接、preset、模型选择及 fork 血缘。
+- 模型选择读取新 `request/header.data.header.config`，保留未消费的 `model/selection`；adapter 默认的 reasoning effort 不误当用户选择。
+- 等待异步 `agents.create()` 和 preset mount 完成后，才执行四参数 `commands.execute(child, '/permission read-only', [], signal)`。
+- `read-only` preset 必须同时配置 `sandbox: read-only`、`approval: never`。投递前核实 preset projection、实际 sandbox policy、实际 approval policy；允许审批升级的“只读”配置也会拒绝。
+- 任一只读设置、preset、挂接、取消或投递步骤失败时不继续投递，通过 `AgentHandle.dispose()` 回滚；已挂接工作区先尝试 detach。
+- 子会话是普通 fork，会话标题为 `btw: <问题摘要>`。宿主会在插件卸载时释放该插件创建的活跃 Agent scope，因此不要在旁路问答执行中热卸载插件。
 
 ## 配置
 
 ```yaml
 - id: dsh-btw
   config:
-    maxQuestionChars: 4000 # 问题长度上限
-    maxTitleChars: 40      # 子会话标题截断长度
+    maxQuestionChars: 4000
+    maxTitleChars: 40
 ```
 
-0.2.0 不再提供关闭只读钉住的 `pinReadOnly` 开关；BTW 的问答定位要求始终 fail-closed read-only。
+宿主 0.1.7-rc.2 的 base bundle 权限行 id 是 `permission`，其中 `read-only` 默认搭配 `approval: ask`；BTW 要求改为 `never`。部署时在这行的完整 `presets` 表中合入以下条目，保留其它已有 preset，不能用这个局部片段覆盖整个表：
 
-## 本地测试
+```yaml
+presets:
+  read-only:
+    sandbox: read-only
+    approval: never
+```
 
-```bash
-cd /home/vectorwang/Workspace/dotFiles/dsh/plugins/dsh-btw
+不存在关闭只读验证的开关。缺少配置时命令明确失败，不回退为普通可写 fork。
+
+## 测试
+
+```sh
 node --test test/*.test.js
+DSH_CHECKOUT=/absolute/path/to/deepseek-harness-0.1.7-rc.2 node integration/run.mjs
 ```
 
-核心单元测试不依赖完整 DSH build，覆盖 fork cut、进行中任务 framing、模型继承、四参数 permission 调用及 sandbox policy 验证。完整 rc1 集成验证仍应在父任务准备的 `/home/vectorwang/Workspace/deepseek-harness-0.1.2-rc.1` 构建产物上完成。
+单元测试覆盖逻辑 cut、先于 turn/start 的消息 admission、模型选择、权限接口与错误分支。集成 runner 使用指定 checkout 已安装的 tsx 和 source paths，不安装依赖或构建。`integration/cordis.yml` 通过真实 Loader 装配 AgentLoop、Session、preset registry、权限命令和 filesystem sandbox；仅 LLM/工作区挂接/未调用的 shell 外部能力使用替身。测试实际创建忙碌父会话和子会话，检查继承/提示/只读、真实 `FS_SANDBOX_DENIED`、缺失 preset 时回滚、插件卸载清理。
 
-## 部署边界
+测试只创建并清理独占临时目录，不读取真实会话、凭据，不启动 Web 服务。它不证明 shell 的内核沙箱、未受控第三方工具、真实模型或最终 GUI 部署已验收。
 
-此目录是 dotFiles 源副本，部署目标为 `~/.dsh/plugins/dsh-btw`。本次实现不修改 live 插件、不启动服务；备份与复制部署由主 agent 负责。
+## 打包与部署
 
-## 剩余限制
+原生 ESM，无构建步骤。发布内容为 `lib/`、`cordis.patch.yml`、package/README；测试留在源仓库。可用 `pnpm pack` 生成固定版本 tgz 后交由 profile 安装，或按现有目录 `file:` 方式部署。必须保留源测试和既有发行包，不能只保留 node_modules。
 
-- 完整历史前缀会随长会话增长，这是 fork 语义的固有成本。
-- 只读保证依赖目标 profile 正确组合 `permissionPresets`、`sandboxPolicy` 和真正执行 confinement 的工具后端；本插件验证 projection/policy，但无法把未沙箱化的第三方工具变成安全工具。
-- 仅 Web GUI 人类命令路径可用。
+本目录是 dotFiles 维护源；live 目标为 `~/.dsh/plugins/dsh-btw`。源改动不会自动部署。安装器可能硬链接本地文件，升级应使用独立 staging/tgz，不在运行副本上原位修改。宿主重新装配与既有 Web URL 验收由部署流程负责。
+
+## 限制
+
+完整历史 seed 随长会话增长。只读保证依赖真实工具后端执行 confinement；本插件不能把绕过 DSH 沙箱的第三方工具变成安全工具。仅提供人类命令路径，不供模型自行启动旁路工作。

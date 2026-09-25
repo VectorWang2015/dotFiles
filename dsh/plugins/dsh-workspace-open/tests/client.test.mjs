@@ -56,8 +56,7 @@ function harness(openWorkspacePath = async () => ({ ok: true, value: { opened: t
   plugin.apply(ctx);
   function render(sessionId = 'current', byId = { current: { cwd: '/workspace/current' } }) {
     offset = 0;
-    const element = component({ sessionId, useSessions: (selector) => selector({ byId }) });
-    return element.type(element.props);
+    return component({ sessionId, useSessions: (selector) => selector({ byId }), ...entry.inject() });
   }
   return { plugin, entry, render, dispose: () => { removeEntry(); return disposed; } };
 }

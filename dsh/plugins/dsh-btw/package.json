@@ -1,7 +1,7 @@
 {
   "name": "dsh-btw",
-  "version": "0.2.0",
-  "description": "btw 旁路问答：主 agent 忙碌时实时 fork 已完成上下文，并在验证只读权限后并行回答。Target: DSH 0.1.2-rc.1.",
+  "version": "0.3.0",
+  "description": "btw 旁路问答：主 agent 忙碌时实时 fork 已完成上下文，并在验证只读权限后并行回答。Target: DSH 0.1.7-rc.2.",
   "private": true,
   "type": "module",
   "main": "lib/index.js",
@@ -15,9 +15,13 @@
     "cordis.patch.yml"
   ],
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "test:integration": "node integration/run.mjs"
   },
   "dsh": {
+    "engines": {
+      "dsh": ">=0.1.7-rc.2"
+    },
     "bundle": {
       "patch": "./cordis.patch.yml"
     }

@@ -1,0 +1,7 @@
+# Test-only overlay for repro.cordis.yml after node prepare.mjs.
+# Loader patch `name` is a guard, not a module replacement: disable and insert.
+- id: liangshen
+  disabled: true
+- insert:
+    - id: liangshen-fixed
+      name: ./patched/lib/index.js

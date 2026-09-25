@@ -11,3 +11,5 @@ allowBuilds:
   cpu-features: true
   node-pty: true
   ssh2: true
+patchedDependencies:
+  '@linxin666/dsh-liangshen@0.4.2': patches/linxin666__dsh-liangshen@0.4.2.patch

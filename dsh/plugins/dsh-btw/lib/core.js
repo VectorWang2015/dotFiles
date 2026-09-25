@@ -19,37 +19,48 @@ export function textOf(event) {
 }
 
 export function forkCut(events) {
-  const lastTurnEnd = events.findLast((event) => event.type === "turn/end")
-  if (lastTurnEnd === undefined) return undefined
-  let cut = lastTurnEnd.seq + 1
-  while (cut < events.length && events[cut]?.type !== "turn/start") cut += 1
-  return { lastTurnEnd, cut }
+  const lastTurnEndIndex = events.findLastIndex((event) => event.type === "turn/end")
+  if (lastTurnEndIndex < 0) return undefined
+  let cut = lastTurnEndIndex + 1
+  while (cut < events.length) {
+    const next = events[cut]
+    // A newly admitted user message can precede turn/start in format 4.
+    if (next.type === "turn/start" || next.type === "agent/inbox/spliced"
+      || (next.type === "user/message" && next.surfaceOp === "append")) break
+    cut += 1
+  }
+  return { lastTurnEndIndex, cut }
 }
 
-export function inflightTextOf(events, lastCompletedSeq) {
+export function inflightTextOf(events, lastCompletedIndex) {
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index]
     if (event.type !== "user/message") continue
     const text = textOf(event)
-    if (text !== "" && event.seq > lastCompletedSeq) return text
+    if (text !== "" && index > lastCompletedIndex) return text
     return undefined
   }
   return undefined
 }
 
 export function latestModelSelection(events, fallback) {
-  for (let index = events.length - 1; index >= 0; index -= 1) {
-    const event = events[index]
+  let pending
+  let lastUsed
+  for (const event of events) {
+    if (event.type === "model/selection") pending = event.data
     if (event.type !== "request/header") continue
-    const config = event?.data?.config
-    if (config?.provider === undefined || config?.model === undefined) break
-    return {
+    const header = event.data.header
+    const config = header.config
+    lastUsed = {
       provider: config.provider,
       model: config.model,
-      ...(config.reasoningEffort === undefined ? {} : { reasoningEffort: config.reasoningEffort }),
+      ...(config.reasoningEffort === undefined || header.adapterDefaults?.reasoningEffort === true
+        ? {} : { reasoningEffort: config.reasoningEffort }),
     }
+    if (pending?.provider === config.provider && pending?.model === config.model
+      && pending?.reasoningEffort === config.reasoningEffort) pending = undefined
   }
-  return fallback
+  return pending ?? lastUsed ?? fallback
 }
 
 export function buildPrompt(question, inflightText) {
@@ -66,7 +77,10 @@ export function buildPrompt(question, inflightText) {
 export async function pinReadOnly(ctx, child, signal) {
   const presets = ctx.get("permissionPresets")
   if (presets === undefined) throw new Error("permissionPresets service is unavailable")
-  presets.resolve("read-only")
+  const spec = presets.resolve("read-only")
+  if (spec.sandbox !== "read-only" || spec.approval !== "never") {
+    throw new Error("read-only preset must enforce sandbox read-only and approval never")
+  }
   const execution = await ctx.commands.execute(child, "/permission read-only", [], signal)
   if (execution === undefined) throw new Error("/permission command is unavailable")
   if (execution.result?.kind !== "success") {
@@ -80,5 +94,10 @@ export async function pinReadOnly(ctx, child, signal) {
   }
   if (effectiveMode !== "read-only") {
     throw new Error(`sandbox policy reports ${String(effectiveMode)}, expected read-only`)
+  }
+  const approval = ctx.get("approval")
+  const approvalPolicy = approval?.overrideOf(child.session) ?? approval?.config.policy
+  if (approvalPolicy !== "never") {
+    throw new Error(`approval policy reports ${String(approvalPolicy)}, expected never`)
   }
 }

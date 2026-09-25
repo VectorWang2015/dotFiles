@@ -1,0 +1,5 @@
+# Test-only Loader fixture. The test supplies the real prompt/projection services.
+- id: liangshen
+  name: ./upstream/lib/index.js
+- id: delayed-preset-registry
+  name: ./delayed-registry.mjs
