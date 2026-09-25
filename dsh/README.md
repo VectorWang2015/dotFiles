@@ -1,6 +1,6 @@
 # DSH 配置与本地插件备份
 
-本目录维护源码构建的 DSH `0.1.7-rc.2` 配套配置与本地插件。文件手动复制部署，不使用部署 symlink；不包含凭据、用户会话、运行日志或 node_modules。这里是可重建的配置基线，不等于已完成线上切换；本机实际升级结果以 `~/dsh-upgrade-2026-09-25/result.json` 和 `STATE.md` 为准。
+本目录维护源码构建的 DSH `0.1.7-rc.2` 配套配置与本地插件。文件手动复制部署，不使用部署 symlink；不包含凭据、用户会话、运行日志或 node_modules。这里是可重建的配置基线，不等于已完成线上切换；本机正式切换已完成，实际升级结果以 `~/dsh-upgrade-2026-09-25/attempt-2/result.json` 和该目录的验收报告为准；父目录是第一次中止尝试，不用于判断当前状态。
 
 ## 固定版本和来源
 
@@ -15,7 +15,8 @@
 | 梁神 | 全家桶带入 0.4.2，使用 [精确启动依赖补丁](liangshen-local/README.md) 修复 registry 启动竞态 |
 | DeepEye | 第三方 `dsh-plugin-deepeye@0.2.0`，查询时最新版本未变 |
 | ARIS | 第三方上游 0.1.1 + 本地隔离改造 `0.1.1-local.2`，见 [可复现维护目录](aris-local/README.md) |
-| BTW／打开工作区 | 本地自研 `dsh-btw@0.3.0`／`dsh-workspace-open@1.2.0` |
+| BTW | 自研旧插件已退役并禁用；0.3.0源码仅归档，线上旧安装副本不再补升级 |
+| 打开工作区 | 本地自研 `dsh-workspace-open@1.2.0` |
 | Ego Browser | 第三方 `dsh-ego-browser@0.8.5`，继续禁用，不称为本机自研 |
 | Ads | 第三方 Git 依赖固定 `7cbc5e5c937a8eb22c6e0169b61ff3298ab0fb58`，继续禁用 |
 
@@ -41,13 +42,15 @@ Session 格式从 0 升到 4，旧 generation 虽保留，但新版优先选择�
 | `../scripts/start_workspace_on_boot.sh` | `~/workspace.sh` 与 `~/Workspace/000000_scripts/start_workspace_on_boot.sh` |
 | `pets/jingzhenen/` | `~/.codex/pets/jingzhenen/` |
 
-profile 使用 `nodeLinker: hoisted`、`autoInstallPeers: false`，不另装一份 DSH/Cordis。BTW 用 `file:../../plugins/dsh-btw`；workspace-open 与 ARIS 使用版本化的相对 `file:` tarball 路径。ARIS tgz 从 `aris-local/rebuild.py` 构建，不提交约2MB的上游内容副本；安装前应在本机生成对应 releases 文件。`pnpm install` 不更新 bundle 清单，manifest、bundle 与 lockfile 必须一起维护。目录 `file:` 安装可能使用硬链接或保留旧副本，必须核对实际安装版本和内容，不能在运行中的源码目录原位构建。
+profile 使用 `nodeLinker: hoisted`、`autoInstallPeers: false`，不另装一份 DSH/Cordis。BTW 仅保留历史目录依赖 `file:../../plugins/dsh-btw` 并明确禁用，不再升级或部署；workspace-open 与 ARIS 使用版本化的相对 `file:` tarball 路径。ARIS tgz 从 `aris-local/rebuild.py` 构建，不提交约2MB的上游内容副本；安装前应在本机生成对应 releases 文件。`pnpm install` 不更新 bundle 清单，manifest、bundle 与 lockfile 必须一起维护。目录 `file:` 安装可能使用硬链接或保留旧副本，必须核对实际安装版本和内容，不能在运行中的源码目录原位构建。
 
 新 DSH 首次启动把机器上的 `settings.yaml` 尝试导入 profile 配置后改名为 `settings.yaml.imported`，拒绝导入的节需要人工核对。这里保留的旧 `settings.yaml` 只是历史公开基线，**不是新版活跃设置文件**；不得从机器生成的完整 profile 直接提交凭据、token 或私有模型配置。升级验收核对真实 provider/model，ARIS 不覆盖默认模型。
 
 ## 自研插件与 ARIS 隔离
 
-### BTW
+### BTW（已退役）
+
+用户已确认使用 Web UI 整合包侧栏对话，不再维护此自研插件。通过官方 pluginManager 对 `include:dsh-btw` 单条目在线禁用，持久化为 `disabled: true`；未重启服务。源码和历史保留，以下是归档实现说明而非部署计划。
 
 `/btw <问题>` 在主会话忙碌时按完整已提交历史分叉，继承模型、preset 和工作区。0.3.0 使用 Session format 4 的逻辑快照及官方 fork seed，拒绝把持久化 packed row 索引当作逻辑序号，也不携带当前未完成工作。
 

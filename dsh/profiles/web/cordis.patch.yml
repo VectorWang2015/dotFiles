@@ -11,6 +11,11 @@
 - id: ego-browser
   disabled: true
 
+# Retired local /btw plugin; use the integrated Web UI side conversation.
+# Keep installed files and historical sessions, but do not mount the plugin.
+- id: dsh-btw
+  disabled: true
+
 # Preserve features enabled before upgrading the aggregate to 0.4.2.
 - id: web-ui-ssh
   disabled: false
@@ -19,7 +24,7 @@
 - id: web-ui-skill-explorer
   disabled: false
 
-# BTW validates both file confinement and absence of approval escalation.
+# Keep the existing explicit read-only policy; retiring BTW does not weaken it.
 - id: permission
   config:
     presets:
