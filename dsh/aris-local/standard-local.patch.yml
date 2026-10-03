@@ -1,4 +1,4 @@
-# Full preset-standard config override for DSH 0.1.7-rc.2 (477b4f4).
+# Full preset-standard config override for DSH 0.2.0-rc.2 (639ed015).
 # Applied after dsh-web-app; preserves only the local gateway compaction policy.
     - id: preset-standard
       config:

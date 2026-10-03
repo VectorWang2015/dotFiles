@@ -1,5 +1,6 @@
 # Reviewed deployment baseline; machine-private model settings are not committed.
 - id: deepeye-vision
+  disabled: true
   config:
     provider: custom
     baseUrl: 'https://open.bigmodel.cn/api/paas/v4'
@@ -9,7 +10,15 @@
 - id: dsh-ads
   disabled: true
 - id: ego-browser
+  disabled: false
+
+# Source updates and startup remain owned by workspace.sh, not a second updater.
+- id: web-ui-update
   disabled: true
+
+- id: agent-desktop
+  config:
+    runtimeRoot: /home/vectorwang/Workspace/agent-desktop-lab/.runtime
 
 # Retired local /btw plugin; use the integrated Web UI side conversation.
 # Keep installed files and historical sessions, but do not mount the plugin.
@@ -42,7 +51,7 @@
 # ARIS owns its runtime-only row and explicit Research declaration.
 # Standard's full local override follows; update it with the upstream baseline.
 
-# Full preset-standard config override for DSH 0.1.7-rc.2 (477b4f4).
+# Full preset-standard config override for DSH 0.2.0-rc.2 (639ed01).
 # Applied after dsh-web-app; preserves only the local gateway compaction policy.
 - id: preset-standard
   config:

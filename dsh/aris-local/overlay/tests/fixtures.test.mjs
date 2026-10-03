@@ -32,12 +32,18 @@ test('test dependencies resolve to the current checkout built packages, not prof
 test('package exports keep runtime and opt-in skills separate and include the research template', async () => {
   const pkg = JSON.parse(await readFile(join(PACKAGE_ROOT, 'package.json'), 'utf8'))
   assert.equal(pkg.name, 'dsh-aris')
-  assert.equal(pkg.version, '0.1.1-local.2')
+  assert.equal(pkg.version, '0.1.1-local.3')
   assert.equal(pkg.exports['.'], './dsh/index.mjs')
   assert.equal(pkg.exports['./runtime'], './dsh/runtime.mjs')
   assert.equal(pkg.exports['./skills'], './dsh/skills.mjs')
   assert.deepEqual(pkg.dsh.bundle.patch, ['./dsh/cordis.patch.yml', './presets/research.patch.yml'])
-  assert.equal(pkg.peerDependencies['@deepseek-ai/dsh'], '0.1.7-rc.2')
+  assert.deepEqual(pkg.peerDependencies, {
+    '@deepseek-ai/dsh': '0.2.0-rc.2',
+    '@deepseek-ai/dsh-skill-filesystem': '0.2.0-rc.2',
+    '@deepseek-ai/dsh-mcp-client': '0.2.0-rc.2',
+  })
+  const target = JSON.parse(await readFile(join(CHECKOUT, 'apps/cli/package.json'), 'utf8'))
+  assert.equal(target.version, '0.2.0-rc.2')
   assert.ok(pkg.files.includes('presets'))
   for (const relative of ['presets/research.patch.yml']) {
     assert.ok((await stat(join(PACKAGE_ROOT, relative))).isFile())

@@ -13,15 +13,21 @@ LABOR_WS_PATH="$HOME/Workspace/navigation2_ws"
 MAIN_SESSION="workspace"
 
 # Run the tested source checkout directly in an interactive tmux window.
-DSH_REPO="$HOME/Workspace/deepseek-harness-0.1.7-rc.2"
+DSH_REPO="$HOME/Workspace/deepseek-harness-0.2.0-rc.2"
 DSH_PORT=3080
+DSH_ONLY=false
+if [[ "${1-}" == "--dsh-only" ]]; then
+  DSH_ONLY=true
+  shift
+fi
 
 usage() {
   cat <<'EOF'
 Usage:
-  start_workspace_on_boot.sh [-p workspace_path]
+  start_workspace_on_boot.sh [--dsh-only] [-p workspace_path]
 
 Options:
+  --dsh-only          Start DSH only; do not launch labor tools or attach tmux.
   -p workspace_path   Workspace path to pass to labor script. Overrides config.
   -h                  Show this help message.
 EOF
@@ -52,10 +58,12 @@ done < <(tmux list-sessions -F '#{session_id} #{session_name}' 2>/dev/null || tr
 
 if [[ -z "$main_target" ]]; then
   main_target="$(tmux new-session -d -P -F '#{session_id}' -s "$MAIN_SESSION" -c "$HOME/Workspace")"
-  printf -v workspace_cd 'cd %q' "$HOME/Workspace"
-  tmux send-keys -t "$main_target" "$workspace_cd" C-m
-  tmux send-keys -t "$main_target" C-l
-  tmux send-keys -t "$main_target" "task next" C-m
+  if [[ "$DSH_ONLY" != true ]]; then
+    printf -v workspace_cd 'cd %q' "$HOME/Workspace"
+    tmux send-keys -t "$main_target" "$workspace_cd" C-m
+    tmux send-keys -t "$main_target" C-l
+    tmux send-keys -t "$main_target" "task next" C-m
+  fi
 fi
 
 # Also start DSH when the workspace exists but its previous DSH process exited.
@@ -72,6 +80,10 @@ else
   # Interactive shell initialization supplies the user's normal Node/pnpm PATH.
   printf -v dsh_start 'pnpm dsh web --port %q' "$DSH_PORT"
   tmux send-keys -t "$dsh_window" "$dsh_start" C-m
+fi
+
+if [[ "$DSH_ONLY" == true ]]; then
+  exit 0
 fi
 
 if [[ -x "$LABOR_SCRIPT" ]]; then

@@ -4,12 +4,13 @@
   "packageManager": "pnpm@11.7.0",
   "dependencies": {
     "@dsh-external/dsh-ads": "github:Nagi-ovo/dsh-ads#7cbc5e5c937a8eb22c6e0169b61ff3298ab0fb58",
-    "@linxin666/dsh-client-ui-session-id": "0.4.2",
-    "@linxin666/dsh-web-all": "0.4.2",
-    "dsh-aris": "file:../../plugins/dsh-aris/releases/dsh-aris-0.1.1-local.2.tgz",
-    "dsh-better-sidebar": "0.21.1",
+    "@linxin666/dsh-client-ui-session-id": "0.4.4",
+    "@linxin666/dsh-web-all": "0.4.4",
+    "dsh-agent-desktop": "file:../../plugins/dsh-agent-desktop/releases/dsh-agent-desktop-0.2.1.tgz",
+    "dsh-aris": "file:../../plugins/dsh-aris/releases/dsh-aris-0.1.1-local.3.tgz",
+    "dsh-better-sidebar": "0.24.1",
     "dsh-btw": "file:../../plugins/dsh-btw",
-    "dsh-ego-browser": "0.8.5",
+    "dsh-ego-browser": "0.8.6",
     "dsh-plugin-deepeye": "0.2.0",
     "dsh-workspace-open": "file:../../plugins/dsh-workspace-open/releases/dsh-workspace-open-1.2.0.tgz"
   },
@@ -18,15 +19,13 @@
       "bundles": [
         "@deepseek-ai/dsh-base",
         "@deepseek-ai/dsh-web-app",
-        "@dsh-external/dsh-ads",
-        "dsh-plugin-deepeye",
         "dsh-workspace-open",
-        "dsh-btw",
         "@linxin666/dsh-web-all",
         "@linxin666/dsh-client-ui-session-id",
         "dsh-better-sidebar",
         "dsh-aris",
-        "dsh-ego-browser"
+        "dsh-ego-browser",
+        "dsh-agent-desktop"
       ]
     }
   }

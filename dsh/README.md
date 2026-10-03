@@ -1,96 +1,66 @@
-# DSH 配置与本地插件备份
+# DSH 配置与本地插件
 
-本目录维护源码构建的 DSH `0.1.7-rc.2` 配套配置与本地插件。文件手动复制部署，不使用部署 symlink；不包含凭据、用户会话、运行日志或 node_modules。这里是可重建的配置基线，不等于已完成线上切换；本机正式切换已完成，实际升级结果以 `~/dsh-upgrade-2026-09-25/attempt-2/result.json` 和该目录的验收报告为准；父目录是第一次中止尝试，不用于判断当前状态。
+本目录维护 **DSH 0.2.0-rc.2 升级候选**及可复现的本地定制。2026-10-03 已通过隔离构建、384 个历史副本读取和 Web 组合验收；正式切换须先确认两个 Agent 桌面的照片窗口已保存、可关闭。Git 中的候选版本不等于当前 live 已切换，不能在活动桌面存在时盲目复制配置并重启。
 
-## 固定版本和来源
+## 候选版本
 
-| 组件 | 版本／性质 |
+| 项目 | 版本与来源 |
 |---|---|
-| DSH | 官方 tag `dsh-v0.1.7-rc.2`，SHA `477b4f420553e8a52c2fbccc464d7561b239c443`，另加本目录记录的本地补丁 |
-| 目标源码 | `~/Workspace/deepseek-harness-0.1.7-rc.2` |
-| 回滚源码 | 保留 `~/Workspace/deepseek-harness-0.1.2-rc.1` 原构建及匹配的数据/profile |
-| UI 全家桶 | 第三方 `@linxin666/dsh-web-all@0.4.2` |
-| Better Sidebar | 第三方 `dsh-better-sidebar@0.21.1`，独立安装，新全家桶不再代装 |
-| Session ID | 第三方 `@linxin666/dsh-client-ui-session-id@0.4.2` |
-| 梁神 | 全家桶带入 0.4.2；2026-10-03 按用户要求暂时禁用，包、历史与 [启动依赖补丁](liangshen-local/README.md) 保留 |
-| DeepEye | 第三方 `dsh-plugin-deepeye@0.2.0`，查询时最新版本未变 |
-| ARIS | 第三方上游 0.1.1 + 本地隔离改造 `0.1.1-local.2`，见 [可复现维护目录](aris-local/README.md) |
-| BTW | 自研旧插件已退役并禁用；0.3.0源码仅归档，线上旧安装副本不再补升级 |
-| 打开工作区 | 本地自研 `dsh-workspace-open@1.2.0` |
-| Ego Browser | 第三方 `dsh-ego-browser@0.8.5`，继续禁用，不称为本机自研 |
-| Ads | 第三方 Git 依赖固定 `7cbc5e5c937a8eb22c6e0169b61ff3298ab0fb58`，继续禁用 |
+| DSH | 官方 dsh-v0.2.0-rc.2，639ed015397290b3745d163aafe02ffee4aa3f84，加 [有限本地修复](core-patches/0.2.0-rc.2.README.md) |
+| UI 全家桶／Session ID | @linxin666/dsh-web-all、dsh-client-ui-session-id 0.4.4，要求 DSH >=0.2.0-rc.1 |
+| Better Sidebar | 0.24.1 |
+| Ego Browser | 0.8.6，保留启用，含上游登录态导入和设置兼容修复 |
+| ARIS / Research | 0.1.1-local.3，83 个专属技能，精确适配 DSH 0.2.0-rc.2 |
+| 自研 Agent Desktop | 0.2.1，精确适配 DSH 0.2.0-rc.2，代码源在独立 dsh-agent-desktop 仓库 |
+| 自研工作区打开 | 1.2.0，代码不变，在新 DSH 下组合测试通过 |
+| 旧自研 BTW、梁神、DeepEye、Ads | 保持停用；安装/历史文件保留，不恢复其功能 |
 
-这里选择精确的 npm `next` 对应版本，不把 `latest` 当统一升级渠道：核查时 CLI latest 是 0.1.5-rc.3，而 UI 0.4.2 要求 DSH >=0.1.7-rc.2。官方版本仍是预发布。核心 workspace 包按同一 checkout 的 lockfile 安装，不逐包升级 `@latest`。
+新版自动附带的 web-ui-update 行明确禁用，防止形成另一套与源码启动入口冲突的更新流程。旧梁神 0.4.2 补丁保留为历史维护材料，但不再应用到新版停用的 0.4.4 包。Ads/DeepEye 的旧 peer 不支持 0.2，因此保留安装记录但从激活 bundle 列表移除；不是忽略版本检查。
 
-## 构建与数据迁移
+## 主启动入口
 
-使用目标 checkout 声明的 Node `^22.19.0 || >=24.0.0` 和 pnpm `11.7.0`：`pnpm install --frozen-lockfile`，再 `pnpm run build`。Linux 源码部署还需安装 musl-gcc 并执行 `pnpm --dir native/system run build:native`：根 build 只构建 host addon，不生成 Landlock launcher；不要把全部 skipped 的沙箱测试误报通过。构建包含 Host/Client/Web，不要把独立 Vite 页面当作 DSH 应用。实际启动仍是源码入口 `pnpm dsh web --port 3080`。没有同 checkout 的 dev watcher 时，源码改动不保证自动进入现有 GUI；验收应重启并刷新实际 URL。
-
-Session 格式从 0 升到 4，旧 generation 虽保留，但新版优先选择新 generation，不能靠切换代码实现安全降级。官方原版拒绝部分旧 descriptor2 以及本机历史精确 instruction-hint 来源；本地补丁只做严格的有限转换，不删除消息或泛化未知来源。全量迁移必须先在完整 sessions root 副本演练，父子会话不可拆开。正式切换必须有冷备份；回滚恢复匹配的旧代码、profile、插件和完整旧数据。
-
-模型流错误的 `internal server error`／明确 Responses websocket 提前结束文本在原版 rc.2 仍可能被归为不可重试错误。本地补丁将精确的已知文本归入受限重试类别，不对全部未知错误启用无限重试。它不能保证上游接口不再故障。
-
-## 部署文件与私有配置
-
-| Repo | 本机部署位置／用途 |
-|---|---|
-| `plugins/dsh-btw/` | `~/.dsh/plugins/dsh-btw/`，包含源码及测试 |
-| `plugins/dsh-workspace-open/` | `~/.dsh/plugins/dsh-workspace-open/`，包含版本化 releases |
-| `aris-local/` | 从固定上游包重建私有 ARIS；不重复保存上游技能全集 |
-| `profiles/web/*` | 经过审查的 Web profile 基线，按项合并，不覆盖机器私有模型配置 |
-| `core-patches/` | 与精确官方 tag 配套的局部修复和测试 |
-| `../scripts/start_workspace_on_boot.sh` | `~/workspace.sh` 与 `~/Workspace/000000_scripts/start_workspace_on_boot.sh` |
-| `pets/jingzhenen/` | `~/.codex/pets/jingzhenen/` |
-
-profile 使用 `nodeLinker: hoisted`、`autoInstallPeers: false`，不另装一份 DSH/Cordis。BTW 仅保留历史目录依赖 `file:../../plugins/dsh-btw` 并明确禁用，不再升级或部署；workspace-open 与 ARIS 使用版本化的相对 `file:` tarball 路径。ARIS tgz 从 `aris-local/rebuild.py` 构建，不提交约2MB的上游内容副本；安装前应在本机生成对应 releases 文件。`pnpm install` 不更新 bundle 清单，manifest、bundle 与 lockfile 必须一起维护。目录 `file:` 安装可能使用硬链接或保留旧副本，必须核对实际安装版本和内容，不能在运行中的源码目录原位构建。
-
-新 DSH 首次启动把机器上的 `settings.yaml` 尝试导入 profile 配置后改名为 `settings.yaml.imported`，拒绝导入的节需要人工核对。这里保留的旧 `settings.yaml` 只是历史公开基线，**不是新版活跃设置文件**；不得从机器生成的完整 profile 直接提交凭据、token 或私有模型配置。升级验收核对真实 provider/model，ARIS 不覆盖默认模型。
-
-## 自研插件与 ARIS 隔离
-
-### BTW（已退役）
-
-用户已确认使用 Web UI 整合包侧栏对话，不再维护此自研插件。通过官方 pluginManager 对 `include:dsh-btw` 单条目在线禁用，持久化为 `disabled: true`；未重启服务。源码和历史保留，以下是归档实现说明而非部署计划。
-
-`/btw <问题>` 在主会话忙碌时按完整已提交历史分叉，继承模型、preset 和工作区。0.3.0 使用 Session format 4 的逻辑快照及官方 fork seed，拒绝把持久化 packed row 索引当作逻辑序号，也不携带当前未完成工作。
-
-投递前执行四参 `/permission read-only` 并核对权限、sandbox 和 approval，失败关闭子 Agent，不投递。部署必须覆盖 **`id: permission`** 的 presets，令 `read-only` 为 `{sandbox: read-only, approval: never}`；默认 bundle 中该 preset 的 approval 是 ask，不能直接依赖默认值。文件安全仅承诺适用 DSH sandboxPolicy 的执行面，不承诺约束任意绕过该策略的第三方 Node/远端代码。见 [BTW README](plugins/dsh-btw/README.md)。
-
-### 打开工作区
-
-头部槽通过新版 session-scoped 注入取得 cwd，使用认证 Connection RPC 调用 `session/openWorkspacePath` 打开宿主文件管理器，保留绕过 Better Sidebar 文件预览接管的语义。不依赖已删除的 client-runtime 或 workspaces.openPath。见 [插件 README](plugins/dsh-workspace-open/README.md)。
-
-### ARIS
-
-宿主只安装 runtime，83 个技能仅在 Research preset 及其子作用域可用。Research 改为新式 bundle 声明，不再依赖旧 `.agent-presets` 扫描。Standard 和 Research 均保留本机 Copilot Chat 早压缩策略（thresholdRatio 0.3／retainRatio 0.08）和原已启用的 Ralph，使用新版 workflow-ptc。
-
-ARIS 0.1.1 改用上游 Python stdlib Codex exec MCP 桥。认证和真实审稿需独立验收；旧原生 MCP 参数集合和桥接会话状态不能假定完全兼容。不得同时挂旧的 `aris-runtime` file-URL 行与新 bundle runtime。旧安装内指向 rc.1 的手工 skill-filesystem 链接已不应沿用。
-
-## 聚焦测试
+**`~/workspace.sh` 仍是 DSH 的主启动入口。** 仓库源为 [start_workspace_on_boot.sh](../scripts/start_workspace_on_boot.sh)，同时部署到 `~/Workspace/000000_scripts/start_workspace_on_boot.sh`。
 
 ```sh
-node --test dsh/plugins/dsh-btw/test/*.test.js
-DSH_CHECKOUT="$HOME/Workspace/deepseek-harness-0.1.7-rc.2" node dsh/plugins/dsh-btw/integration/run.mjs
-node --test dsh/plugins/dsh-workspace-open/tests/*.test.mjs
-DSH_CHECKOUT="$HOME/Workspace/deepseek-harness-0.1.7-rc.2" node dsh/plugins/dsh-workspace-open/integration/run.mjs
-bash -n scripts/start_workspace_on_boot.sh
+~/workspace.sh             # 原完整工作区启动行为不变
+~/workspace.sh --dsh-only  # 只启动 DSH，不启动 labor 工具、不 attach tmux
 ```
 
-ARIS 重建和38项离线测试步骤见其维护说明。BTW组合测试使用真实 Loader、权限服务和文件沙箱，workspace组合测试使用真实 SlotRegistry、React 与 Connection；它们不替代真实 Web 登录、UI 加载、旧历史、宿主打开行为和模型调用验收。
+两种方式都在已有 workspace tmux 会话中启动 `pnpm dsh web --port 3080`，端口被占用时不重复启动、不杀已有进程。升级事务也应调用这个入口，不另建常驻 systemd supervisor。正式切换前，live 脚本仍指旧 0.1.7；切换成功后才部署候选脚本指向 `~/Workspace/deepseek-harness-0.2.0-rc.2`。
 
-## 有意保留的行为
+启动器验证：`bash -n scripts/start_workspace_on_boot.sh`、`python3 scripts/tests/test_workspace_start.py`。测试用临时 HOME、stub ss/tmux，不启动真实终端或其他用户工具。
 
-- DeepEye 继续使用 GLM-4.6V，8192输出上限、120秒超时，凭据只存本机。
-- Ads 与 Ego 继续禁用；不恢复已经移除的自制硬删除插件。
-- UI 0.4.2 默认关闭的 SSH、技能中心按旧部署保持启用；梁神于2026-10-03单独在线禁用，Research与其他模式不变，不重启服务。
-- 使用官方 JSONL 持久化，不增加第三方数据库后端。
-- 归档不等于删除；物理删除需单独确认，不能在真实历史上做升级测试。
-- 原 `.agent-presets` 目录保留供回滚，但新 core 不扫描它。实际使用的 Research 和梁神已分别由新 bundle 恢复；未发现历史会话显式选择的旧第三方 Anchored 实验预设未自动启用，也未删除其文件。
+## 构建、历史与回滚
 
-## 启动与回滚
+Node 22.23.2、pnpm 11.7.0 满足目标要求。新源码独立目录安装 frozen lockfile 后完整 `pnpm run build`，Linux 再 `pnpm --dir native/system run build:native` 生成实际 Landlock launcher。不能把全部 skipped 的 confinement 测试当作成功，也不能用单独 Vite 页面替代 DSH Web。
 
-日常入口仍由 workspace.sh/tmux 所有，不新建常驻 supervisor。脚本在 `dsh-web` 窗口运行 `pnpm dsh web --port 3080`；端口已占用时不重复启动。独立升级事务可临时使用 systemd user transient unit 执行停机、冷备份、迁移、健康检查与失败回滚，但不改变日常启动所有权。
+0.2.0-rc.2 writer **仍是 Session V4**，384 个完整历史副本只读打开均成功，无格式升级、失败或跳过。历史 V0 前代仍保留；三项旧本地修复（descriptor2、精确 instruction-hint、明确模型瞬态错误分类）在上游未解决，已基于新 tag 保留并测试。详情见 core-patches 的新 README；不是将未知来源/错误全部放行。
 
-本机升级目录只对本人开放，保存完整备份、日志、恢复步骤和结果。浏览器使用新进程打印的登录 URL；token 不进入 dotFiles。回滚必须使用匹配的冷备份，不让旧版写新版数据。`.env`、SSH/Codex 凭据、会话、截图及运行日志一律不提交。
+正式切换必须：确认无人类接管/活动桌面/其他运行任务，停止旧服务，做完整冷备份（数据、profile、插件、启动脚本），装配已验证候选，检查实际 3080 PID/cwd、认证、插件与历史。失败恢复匹配的代码/profile/数据；不要让旧版本写新版本使用过的数据，不覆盖升级后新消息。冷备份与恢复记录为私有运行资料，不提交 Git。
 
-用户授权对其要求的 dotFiles 修改正常 commit/push；提交前检查范围和敏感内容，不夹带无关改动、不擅自新建分支或强推。
+**Agent Desktop 的窗口不会跨 Host 重启保留。** 即使 Agent 空闲，仍需确认 Local Looks、Feica Fotos 等窗口是否已保存。当前桌面插件是 live link，不能在它运行时原位更新其源码；候选改为固定 tgz，保留 `runtimeRoot: /home/vectorwang/Workspace/agent-desktop-lab/.runtime` 复用已有 native/venv，不迁移或覆盖运行中的 runtime。
+
+## ARIS 定制
+
+[aris-local](aris-local/README.md) 从固定 npm0.1.1 runtime + 精确上游主分支2132036060e03e8d0df69a4b21e5971819c0c2d6资源 + 最小本地overlay重建，不复制整个上游仓库进dotFiles。
+
+- runtime-only宿主与Research-only技能分离，Stable id为research；Standard不暴露ARIS provider。
+- 83技能名称集合不变；更新9个原生SKILL、4个镜像、共享资料、7个helper。包含文献待核验/406/S2重试、HTTPS和watchdog锁；不能笼统称CVE安全更新。
+- Python Codex exec bridge及本地runtime/client逻辑不变，不重置默认模型、Reviewer设置或压缩策略；保留Ralph配置。
+- 重构脚本严格校验来源哈希/提取路径，测试独立HOME、阻断真实网络/外部执行。38兼容、113helper、8重构安全测试通过；两次重构生成相同tgz。
+
+## 版本化插件部署
+
+profile保持`nodeLinker: hoisted`、`autoInstallPeers: false`，避免私带第二套宿主单例。Agent Desktop、workspace-open、ARIS固定相对file: tarball；ARIS完整包在本机按维护脚本重建，不提交上游技能全集。Agent Desktop的小型公开发行tgz随本目录保留，其真正源码在独立GitHub仓库。目录file:可能保留旧安装副本，因此必须核对node_modules实际版本及关键runtime哈希。
+
+profile文件是经审查的公开配置基线，不覆盖机器私有模型/凭据配置。升级候选以实际live patch为基线按项更新；当前导入后的设置不再以旧settings.yaml作为权威。所有`.env`、认证/launch token、SSH/Codex凭据、用户会话与截图日志禁止进入Git。
+
+## 本次验证边界
+
+- DSH本地修复22文件/834测试，相关leaf noEmit/lint/配对文档验证通过。
+- 完整core与native构建、384历史副本读取、workspace-open4项、实际Landlock5项通过。
+- Desktop新core下118JS、6标准库Python、55worker mock、typecheck/build/packagecheck通过；5GUI opt-in明确未运行，未控制现有桌面。
+- 完整隔离Web认证、活跃插件、task-board、model catalog、Research preset、普通/子会话history通过。旧已删除会话ID不作为新历史验收目标。
+- 尚需正式切换及真实3080最终验收，不能把Git发布等同于上线。
+
+临时下载、脚本和诊断使用`/tmp`，不再需要时清理。正式源码、可复现维护源、发行物及必要冷备份例外保留。用户授权正常commit/push，禁止夹带lunaria等既有未提交文件或强推。

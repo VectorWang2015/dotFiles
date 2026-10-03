@@ -1,15 +1,18 @@
 # Local ARIS upgrade record
 
-Version: `0.1.1-local.2`; target DSH: `0.1.7-rc.2` (`477b4f420553e8a52c2fbccc464d7561b239c443`).
+Version: `0.1.1-local.3`; target DSH: `0.2.0-rc.2` (`639ed015397290b3745d163aafe02ffee4aa3f84`).
 
 ## Inputs and merge decisions
 
 - Upstream archive: https://registry.npmjs.org/dsh-aris/-/dsh-aris-0.1.1.tgz
 - npm SHA-1: `059c90eaff2b6948ae6deaf90ec20ae61362b707`.
 - npm integrity: `sha512-1dG7p508fySK/aMUSnSeiWLEWttLOj84KufBNJlq6xNQGT8ulY/4/KzHzJrR5B2oRr6MjW/Eg0QJQmOV76K9nA==`.
-- Local predecessor: `0.1.1-local.1`, itself based on upstream 0.1.0. Its runtime/skills separation is preserved, not its stale Standard copy or user-specific deployment scripts.
-- The complete `skills`, `tools`, `templates`, `mcp-servers` directories are byte-identical to upstream 0.1.1. This includes the new `research-implement-feature` skill: 83 native top-level bundles rather than 82. Nested alternate-host corpora remain resources, not extra native catalog entries.
-- The upstream `dsh/codex.mjs`, `dsh/run-status.mjs`, and `dsh/scope-limits.mjs` are unchanged. The reviewer bridge is new upstream behavior; it uses Python stdlib and `codex exec` instead of `codex mcp-server`.
+- Local predecessor: `0.1.1-local.2` on DSH `0.1.7-rc.2`; its runtime-only/Research-only split, compaction policies, Ralph availability, client injection and bridge are preserved.
+- Resource source: exact upstream main commit `2132036060e03e8d0df69a4b21e5971819c0c2d6` (2026-09-29); codeload archive SHA-256 `9db2b3f49bb7c2ade2700b0c205f5f6e4e13fa4547e2f6c0f867f00ad2818b55`. The complete `skills`, `tools`, `templates`, `mcp-servers` trees match that commit byte-for-byte. The native catalog remains the same 83 bundles; nested alternate-host corpora remain resources, not additional catalog entries.
+- Changed native skills: alphaxiv, auto-paper-improvement-loop, auto-review-loop, deepxiv, overleaf-sync, paper-claim-audit, paper-plan, resubmit-pipeline, wiki-enrich. Four Codex mirrors and shared reviewer-routing also change. Seven helpers change: arxiv_fetch, check_skills_inventory, convert_skills_to_llm_chat, generate_codex_claude_review_overrides, research_wiki, verify_papers, watchdog. Templates are unchanged; MCP changes are limited to the Codex exec README.
+- Reliability updates include 401/403/406 `verify_pending` rather than false fabrication signals, retrying pending cache entries, Semantic Scholar key/429 pacing and retry, arXiv HTTPS/curl fallback, watchdog read-modify-write flock, canonical AlphaXiv URLs and orchestrating Skill grants. These are corpus/tool changes, not new global DSH permissions.
+- Main has no DSH runtime tree. The npm `dsh/codex.mjs`, `dsh/run-status.mjs`, `dsh/scope-limits.mjs` and Python Codex exec bridge implementation remain unchanged. Upstream default models, global skills and installer behavior are not imported.
+- Standard YAML, skill-filesystem and agent-preset-registry source were re-compared against DSH `0.1.7-rc.2` and are identical. Local declarations therefore change only provenance comments; exact peer bumps are validated against actual built `0.2.0-rc.2` modules.
 
 ## Local overlay
 

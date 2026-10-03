@@ -1,4 +1,4 @@
-# Research: DSH 0.1.7-rc.2 Standard (477b4f4) plus its scoped ARIS corpus.
+# Research: DSH 0.2.0-rc.2 Standard (639ed015) plus its scoped ARIS corpus.
 # This is an explicit snapshot, not dynamic inheritance. Session id stays research.
 - insert:
     - id: preset-research
