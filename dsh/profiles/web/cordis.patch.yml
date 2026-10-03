@@ -19,8 +19,9 @@
 # Preserve features enabled before upgrading the aggregate to 0.4.2.
 - id: web-ui-ssh
   disabled: false
+# Temporarily unused; keep package and historical sessions for later reuse.
 - id: web-ui-liangshen
-  disabled: false
+  disabled: true
 - id: web-ui-skill-explorer
   disabled: false
 

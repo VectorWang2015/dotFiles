@@ -12,7 +12,7 @@
 | UI 全家桶 | 第三方 `@linxin666/dsh-web-all@0.4.2` |
 | Better Sidebar | 第三方 `dsh-better-sidebar@0.21.1`，独立安装，新全家桶不再代装 |
 | Session ID | 第三方 `@linxin666/dsh-client-ui-session-id@0.4.2` |
-| 梁神 | 全家桶带入 0.4.2，使用 [精确启动依赖补丁](liangshen-local/README.md) 修复 registry 启动竞态 |
+| 梁神 | 全家桶带入 0.4.2；2026-10-03 按用户要求暂时禁用，包、历史与 [启动依赖补丁](liangshen-local/README.md) 保留 |
 | DeepEye | 第三方 `dsh-plugin-deepeye@0.2.0`，查询时最新版本未变 |
 | ARIS | 第三方上游 0.1.1 + 本地隔离改造 `0.1.1-local.2`，见 [可复现维护目录](aris-local/README.md) |
 | BTW | 自研旧插件已退役并禁用；0.3.0源码仅归档，线上旧安装副本不再补升级 |
@@ -82,7 +82,7 @@ ARIS 重建和38项离线测试步骤见其维护说明。BTW组合测试使用�
 
 - DeepEye 继续使用 GLM-4.6V，8192输出上限、120秒超时，凭据只存本机。
 - Ads 与 Ego 继续禁用；不恢复已经移除的自制硬删除插件。
-- UI 0.4.2 默认关闭的 SSH、梁神、技能中心按旧部署保持启用。
+- UI 0.4.2 默认关闭的 SSH、技能中心按旧部署保持启用；梁神于2026-10-03单独在线禁用，Research与其他模式不变，不重启服务。
 - 使用官方 JSONL 持久化，不增加第三方数据库后端。
 - 归档不等于删除；物理删除需单独确认，不能在真实历史上做升级测试。
 - 原 `.agent-presets` 目录保留供回滚，但新 core 不扫描它。实际使用的 Research 和梁神已分别由新 bundle 恢复；未发现历史会话显式选择的旧第三方 Anchored 实验预设未自动启用，也未删除其文件。
