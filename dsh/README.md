@@ -1,8 +1,8 @@
 # DSH 配置与本地插件
 
-本目录维护 **DSH 0.2.0-rc.2 升级候选**及可复现的本地定制。2026-10-03 已通过隔离构建、384 个历史副本读取和 Web 组合验收；正式切换须先确认两个 Agent 桌面的照片窗口已保存、可关闭。Git 中的候选版本不等于当前 live 已切换，不能在活动桌面存在时盲目复制配置并重启。
+本目录维护 **已部署的 DSH 0.2.0-rc.2**及可复现的本地定制。2026-10-04 已完成正式切换并重新通过真实3080完整验收；386个会话均可读，680份原日志在切换中保持字节不变（后续对话仅正常追加）。自动验收曾取到同目录旧终端的登录URL，不能仅凭通知判断成败；最终验证针对实际监听PID与对应新终端完成。两个Agent桌面已在用户明确同意后关闭。
 
-## 候选版本
+## 已部署版本
 
 | 项目 | 版本与来源 |
 |---|---|
@@ -26,7 +26,7 @@
 ~/workspace.sh --dsh-only  # 只启动 DSH，不启动 labor 工具、不 attach tmux
 ```
 
-两种方式都在已有 workspace tmux 会话中启动 `pnpm dsh web --port 3080`，端口被占用时不重复启动、不杀已有进程。升级事务也应调用这个入口，不另建常驻 systemd supervisor。正式切换前，live 脚本仍指旧 0.1.7；切换成功后才部署候选脚本指向 `~/Workspace/deepseek-harness-0.2.0-rc.2`。
+两种方式都在已有 workspace tmux 会话中启动 `pnpm dsh web --port 3080`，端口被占用时不重复启动、不杀已有进程。升级事务也应调用这个入口，不另建常驻 systemd supervisor。当前两个live启动脚本均已指向 `~/Workspace/deepseek-harness-0.2.0-rc.2`。
 
 启动器验证：`bash -n scripts/start_workspace_on_boot.sh`、`python3 scripts/tests/test_workspace_start.py`。测试用临时 HOME、stub ss/tmux，不启动真实终端或其他用户工具。
 
@@ -38,7 +38,7 @@ Node 22.23.2、pnpm 11.7.0 满足目标要求。新源码独立目录安装 froz
 
 正式切换必须：确认无人类接管/活动桌面/其他运行任务，停止旧服务，做完整冷备份（数据、profile、插件、启动脚本），装配已验证候选，检查实际 3080 PID/cwd、认证、插件与历史。失败恢复匹配的代码/profile/数据；不要让旧版本写新版本使用过的数据，不覆盖升级后新消息。冷备份与恢复记录为私有运行资料，不提交 Git。
 
-**Agent Desktop 的窗口不会跨 Host 重启保留。** 即使 Agent 空闲，仍需确认 Local Looks、Feica Fotos 等窗口是否已保存。当前桌面插件是 live link，不能在它运行时原位更新其源码；候选改为固定 tgz，保留 `runtimeRoot: /home/vectorwang/Workspace/agent-desktop-lab/.runtime` 复用已有 native/venv，不迁移或覆盖运行中的 runtime。
+**Agent Desktop 的窗口不会跨 Host 重启保留。** 即使 Agent 空闲，仍需确认 Local Looks、Feica Fotos 等窗口是否已保存。当前桌面插件已从live link改为固定tgz，原仓库已安全fast-forward到6785652，8个lunaria未跟踪文件逐字节保留；仍保留 `runtimeRoot: /home/vectorwang/Workspace/agent-desktop-lab/.runtime` 复用已有 native/venv，不迁移或覆盖运行中的 runtime。
 
 ## ARIS 定制
 
@@ -61,6 +61,7 @@ profile文件是经审查的公开配置基线，不覆盖机器私有模型/凭
 - 完整core与native构建、384历史副本读取、workspace-open4项、实际Landlock5项通过。
 - Desktop新core下118JS、6标准库Python、55worker mock、typecheck/build/packagecheck通过；5GUI opt-in明确未运行，未控制现有桌面。
 - 完整隔离Web认证、活跃插件、task-board、model catalog、Research preset、普通/子会话history通过。旧已删除会话ID不作为新历史验收目标。
-- 尚需正式切换及真实3080最终验收，不能把Git发布等同于上线。
+- 正式3080最终验收通过：全部目标插件版本、Research模式、任务看板、默认模型、普通与子会话历史、静态资源无错误；没有为收尾再重启DSH。
+- 用户确认验收后要求清理本次临时文件与冷备份。保留简短完成记录、当前数据及V0历史前代，不再提供依赖这些已删除备份的一键回滚；下次维护前重新备份。
 
 临时下载、脚本和诊断使用`/tmp`，不再需要时清理。正式源码、可复现维护源、发行物及必要冷备份例外保留。用户授权正常commit/push，禁止夹带lunaria等既有未提交文件或强推。
