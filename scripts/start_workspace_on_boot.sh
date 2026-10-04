@@ -79,6 +79,10 @@ else
   dsh_window="$(tmux new-window -d -P -F '#{window_id}' -t "$main_target" -n dsh-web -c "$DSH_REPO")"
   # Interactive shell initialization supplies the user's normal Node/pnpm PATH.
   printf -v dsh_start 'pnpm dsh web --port %q' "$DSH_PORT"
+  # A one-shot upgrader can identify only the server it launched; normal use is unchanged.
+  if [[ -n "${DSH_UPGRADE_TRANSACTION-}" ]]; then
+    printf -v dsh_start 'env DSH_UPGRADE_TRANSACTION=%q pnpm dsh web --port %q' "$DSH_UPGRADE_TRANSACTION" "$DSH_PORT"
+  fi
   tmux send-keys -t "$dsh_window" "$dsh_start" C-m
 fi
 

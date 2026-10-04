@@ -9,7 +9,7 @@ SCRIPT = Path(__file__).resolve().parents[1] / 'start_workspace_on_boot.sh'
 
 
 class LauncherTests(unittest.TestCase):
-    def run_launcher(self, occupied=False, existing=True, repo=True):
+    def run_launcher(self, occupied=False, existing=True, repo=True, nonce=None):
         with tempfile.TemporaryDirectory(prefix='dsh-launcher-test-') as tmp:
             root = Path(tmp)
             home = root / 'home'
@@ -33,6 +33,9 @@ exit 0
                 path.chmod(0o700)
             env = {**os.environ, 'HOME': str(home), 'PATH': str(bin_dir) + os.pathsep + os.environ['PATH'],
                    'OCCUPIED': str(int(occupied)), 'EXISTING': str(int(existing)), 'CALL_LOG': str(log)}
+            env.pop('DSH_UPGRADE_TRANSACTION', None)
+            if nonce is not None:
+                env['DSH_UPGRADE_TRANSACTION'] = nonce
             result = subprocess.run(['/bin/bash', str(SCRIPT), '--dsh-only'], env=env, capture_output=True, text=True, timeout=5)
             calls = log.read_text() if log.exists() else ''
             return result, calls
@@ -44,6 +47,11 @@ exit 0
         self.assertIn('pnpm dsh web --port 3080', calls)
         for forbidden in ['task next', 'attach', 'run-shell', 'WARN']:
             self.assertNotIn(forbidden, calls)
+
+    def test_transaction_nonce_is_explicitly_forwarded_to_new_server(self):
+        result, calls = self.run_launcher(nonce='unique-test-transaction')
+        self.assertEqual(result.returncode, 0)
+        self.assertIn('env DSH_UPGRADE_TRANSACTION=unique-test-transaction pnpm dsh web --port 3080', calls)
 
     def test_occupied_port_never_starts_another_instance(self):
         result, calls = self.run_launcher(occupied=True)
