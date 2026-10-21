@@ -1,0 +1,37 @@
+--- a/package.json
++++ b/package.json
+@@ -2,3 +2,3 @@
+   "name": "dsh-wechat-chatbot-local",
+-  "version": "1.0.0",
++  "version": "1.0.1",
+   "private": true,
+@@ -6,6 +6,25 @@
+   "main": "./index.mjs",
+-  "exports": { ".": "./index.mjs", "./policy": "./policy.mjs", "./package.json": "./package.json" },
+-  "files": ["index.mjs", "policy.mjs", "core.mjs", "cordis.patch.yml", "README.md"],
+-  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
+-  "scripts": { "test": "node --test test/*.test.mjs" }
++  "exports": {
++    ".": "./index.mjs",
++    "./policy": "./policy.mjs",
++    "./package.json": "./package.json"
++  },
++  "files": [
++    "index.mjs",
++    "policy.mjs",
++    "core.mjs",
++    "cordis.patch.yml",
++    "README.md"
++  ],
++  "dsh": {
++    "bundle": {
++      "patch": "./cordis.patch.yml"
++    },
++    "engines": {
++      "dsh": "0.2.1-rc.2"
++    }
++  },
++  "scripts": {
++    "test": "node --test test/*.test.mjs"
++  }
+ }

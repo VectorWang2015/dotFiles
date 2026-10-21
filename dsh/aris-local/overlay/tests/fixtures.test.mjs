@@ -32,18 +32,18 @@ test('test dependencies resolve to the current checkout built packages, not prof
 test('package exports keep runtime and opt-in skills separate and include the research template', async () => {
   const pkg = JSON.parse(await readFile(join(PACKAGE_ROOT, 'package.json'), 'utf8'))
   assert.equal(pkg.name, 'dsh-aris')
-  assert.equal(pkg.version, '0.1.1-local.3')
+  assert.equal(pkg.version, '0.1.1-local.4')
   assert.equal(pkg.exports['.'], './dsh/index.mjs')
   assert.equal(pkg.exports['./runtime'], './dsh/runtime.mjs')
   assert.equal(pkg.exports['./skills'], './dsh/skills.mjs')
   assert.deepEqual(pkg.dsh.bundle.patch, ['./dsh/cordis.patch.yml', './presets/research.patch.yml'])
   assert.deepEqual(pkg.peerDependencies, {
-    '@deepseek-ai/dsh': '0.2.0-rc.2',
-    '@deepseek-ai/dsh-skill-filesystem': '0.2.0-rc.2',
-    '@deepseek-ai/dsh-mcp-client': '0.2.0-rc.2',
+    '@deepseek-ai/dsh': '0.2.1-rc.2',
+    '@deepseek-ai/dsh-skill-filesystem': '0.2.1-rc.2',
+    '@deepseek-ai/dsh-mcp-client': '0.2.1-rc.2',
   })
   const target = JSON.parse(await readFile(join(CHECKOUT, 'apps/cli/package.json'), 'utf8'))
-  assert.equal(target.version, '0.2.0-rc.2')
+  assert.equal(target.version, '0.2.1-rc.2')
   assert.ok(pkg.files.includes('presets'))
   for (const relative of ['presets/research.patch.yml']) {
     assert.ok((await stat(join(PACKAGE_ROOT, relative))).isFile())
@@ -80,7 +80,7 @@ test('research template is the full current standard composition plus one scoped
   standard.find(row => row.id === 'compaction').config.find(row => row.id === 'compaction-basic').config = {
     modelPolicies: [{ provider: 'copilot-chat', model: 'claude-opus-5-5', thresholdRatio: 0.3, retainRatio: 0.08 }],
   }
-  standard.find(row => row.id === 'delegation').config.find(row => row.id === 'tool-ralph').disabled = false
+  standard.find(row => row.id === 'delegation').config.push({ id: 'tool-ralph', name: '@deepseek-ai/dsh-tool-ralph', disabled: false, config: { subagentProvider: 'spawn', maxRounds: 64 } })
   const research = metadata.plugins
   assert.equal(research.length, standard.length + 1)
   assert.deepEqual(research.slice(0, -1), standard, 'standard tool grants and service realms remain unchanged')

@@ -1,0 +1,64 @@
+--- a/core.mjs
++++ b/core.mjs
+@@ -57,3 +57,4 @@
+     if (event.type === 'turn/start') currentTurn = event.data.turn;
+-    if (event.type === 'user/message') {
++    // Runtime-context messages are user-role context, not another human request.
++    if (event.type === 'user/message' && event.data.source?.kind === 'user') {
+       const source = event.data.source;
+--- a/package.json
++++ b/package.json
+@@ -2,3 +2,3 @@
+   "name": "dsh-wechat-vision-local",
+-  "version": "1.0.0",
++  "version": "1.0.1",
+   "private": true,
+@@ -6,6 +6,25 @@
+   "main": "./index.mjs",
+-  "exports": { ".": "./index.mjs", "./policy": "./policy.mjs", "./package.json": "./package.json" },
+-  "files": ["index.mjs", "policy.mjs", "core.mjs", "cordis.patch.yml", "README.md"],
+-  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
+-  "scripts": { "test": "node --test test/*.test.mjs" }
++  "exports": {
++    ".": "./index.mjs",
++    "./policy": "./policy.mjs",
++    "./package.json": "./package.json"
++  },
++  "files": [
++    "index.mjs",
++    "policy.mjs",
++    "core.mjs",
++    "cordis.patch.yml",
++    "README.md"
++  ],
++  "dsh": {
++    "bundle": {
++      "patch": "./cordis.patch.yml"
++    },
++    "engines": {
++      "dsh": "0.2.1-rc.2"
++    }
++  },
++  "scripts": {
++    "test": "node --test test/*.test.mjs"
++  }
+ }
+--- /dev/null
++++ b/test/runtime-context.test.mjs
+@@ -0,0 +1,16 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { finalResponse } from '../core.mjs';
++const human = rpcId => ({type:'user/message',surfaceOp:'append',data:{source:{kind:'user',rpcId}}});
++const runtime = {type:'user/message',surfaceOp:'append',data:{source:{kind:'runtime-context',form:'snapshot',sections:[{name:'working-directory:current',text:'Synthetic cwd'}]}}};
++const history = middle => [{type:'turn/start',data:{turn:1}},...middle,{type:'assistant/message',surfaceOp:'append',data:{turn:1,message:{content:[{type:'text',text:'synthetic final'}]}}},{type:'turn/end',data:{turn:1,reason:{kind:'completed'}}}];
++test('target runtime-context does not count as a second human input',()=>{
++ assert.equal(finalResponse(history([human('r1'),runtime]),'r1'),'synthetic final');
++});
++test('another real human input is still rejected',()=>{
++ assert.throws(()=>finalResponse(history([human('r1'),runtime,human('other')]),'r1'),/mixed_input_turn/);
++});
++test('nonhuman context cannot impersonate the matching human request',()=>{
++ const forged={...runtime,data:{source:{...runtime.data.source,rpcId:'r1'}}};
++ assert.throws(()=>finalResponse(history([forged]),'r1'),/request_not_committed/);
++});

@@ -5,7 +5,7 @@ import { sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 export const CHECKOUT = process.env.DSH_CHECKOUT
-if (!CHECKOUT) throw new Error('Set DSH_CHECKOUT to a built DSH 0.2.0-rc.2 checkout; no live fallback is allowed')
+if (!CHECKOUT) throw new Error('Set DSH_CHECKOUT to a built DSH 0.2.1-rc.2 checkout; no live fallback is allowed')
 export const PACKAGE_ROOT = fileURLToPath(new URL('../', import.meta.url))
 export const TEST_WORK = fileURLToPath(new URL('../../test-work/', import.meta.url))
 

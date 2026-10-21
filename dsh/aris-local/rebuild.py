@@ -119,7 +119,7 @@ def main():
     print(f"Verified resource commit {RESOURCE_SHA}, archive sha256 {RESOURCE_SHA256}")
     print(f"Package: {out / 'package'}")
     print(f"Standard override (separate deployment patch): {out / 'standard-local.patch.yml'}")
-    print("Next: set DSH_CHECKOUT to a built 0.2.0-rc.2 checkout and isolate HOME; run node --test tests/*.test.mjs.")
+    print("Next: set DSH_CHECKOUT to a built 0.2.1-rc.2 checkout and isolate HOME; run node --test tests/*.test.mjs.")
     print("Run python3 -B tests/helpers-offline.py with pytest installed; package with npm pack --ignore-scripts.")
     print("This script does not install or switch any profile.")
 

@@ -1,0 +1,48 @@
+--- a/package.json
++++ b/package.json
+@@ -2,3 +2,3 @@
+   "name": "dsh-wechat-news-local",
+-  "version": "1.0.0",
++  "version": "1.0.1",
+   "private": true,
+@@ -6,6 +6,29 @@
+   "main": "./index.mjs",
+-  "exports": { ".": "./index.mjs", "./policy": "./policy.mjs", "./package.json": "./package.json" },
+-  "files": ["index.mjs", "policy.mjs", "core.mjs", "news_tools.mjs", "news_backend.mjs", "trendradar.mjs", "cordis.patch.yml", "README.md", "test"],
+-  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
+-  "scripts": { "test": "node --test test/*.test.mjs" }
++  "exports": {
++    ".": "./index.mjs",
++    "./policy": "./policy.mjs",
++    "./package.json": "./package.json"
++  },
++  "files": [
++    "index.mjs",
++    "policy.mjs",
++    "core.mjs",
++    "news_tools.mjs",
++    "news_backend.mjs",
++    "trendradar.mjs",
++    "cordis.patch.yml",
++    "README.md",
++    "test"
++  ],
++  "dsh": {
++    "bundle": {
++      "patch": "./cordis.patch.yml"
++    },
++    "engines": {
++      "dsh": "0.2.1-rc.2"
++    }
++  },
++  "scripts": {
++    "test": "node --test test/*.test.mjs"
++  }
+ }
+--- a/test/core.test.mjs
++++ b/test/core.test.mjs
+@@ -116,3 +116,3 @@
+   const actual = await handler.callback({}, async () => ({ provider: 'other', model: 'x', reasoningEffort: 'high', maxTokens: 9999 }));
+-  assert.deepEqual(actual, { ...MODEL, maxTokens: 4096 });
++  assert.deepEqual(actual, { ...MODEL, maxTokens: 8192 });
+   fake.pollute(); await assert.rejects(handler.callback({}, async () => ({})), /schema audit failed/);

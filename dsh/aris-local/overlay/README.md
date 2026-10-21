@@ -1,10 +1,10 @@
-# ARIS for DSH 0.2.0-rc.2 — local isolation release
+# ARIS for DSH 0.2.1-rc.2 — local isolation release
 
-Version `0.1.1-local.3` combines the published `dsh-aris@0.1.1` runtime/Codex bridge with upstream resource commit `2132036060e03e8d0df69a4b21e5971819c0c2d6` and the local runtime-only and Research-only isolation design. See [LOCAL-CHANGES.md](LOCAL-CHANGES.md) for the merge record and deployment cautions; [中文](README_CN.md).
+Version `0.1.1-local.4` combines the published `dsh-aris@0.1.1` runtime/Codex bridge with upstream resource commit `2132036060e03e8d0df69a4b21e5971819c0c2d6` and the local runtime-only and Research-only isolation design. See [LOCAL-CHANGES.md](LOCAL-CHANGES.md) for the merge record and deployment cautions; [中文](README_CN.md).
 
 ## Installation and composition
 
-Package and pin this directory as a local tarball, not `dsh-aris@latest`: the public package does not contain these isolation changes. The package's `dsh.bundle.patch` loads the host patch and `presets/research.patch.yml`, in that order, after the Web bundle. It registers stable preset id `research` with the DSH 0.2.0-rc.2 Standard child-plugin list, the local `copilot-chat` / `claude-opus-5-5` compaction policy (`thresholdRatio: 0.3`, `retainRatio: 0.08`), the existing enabled Ralph tool, and `dsh-aris/skills`. The standalone Standard override also explicitly keeps Ralph enabled, unlike the new upstream default. It does not change the selected model or default preset. The old `.agent-presets/research` directory is not a registration mechanism in this DSH version.
+Package and pin this directory as a local tarball, not `dsh-aris@latest`: the public package does not contain these isolation changes. The package's `dsh.bundle.patch` loads the host patch and `presets/research.patch.yml`, in that order, after the Web bundle. It registers stable preset id `research` with the DSH 0.2.1-rc.2 Standard child-plugin list, the local `copilot-chat` / `claude-opus-5-5` compaction policy (`thresholdRatio: 0.3`, `retainRatio: 0.08`), the existing enabled Ralph tool, and `dsh-aris/skills`. The standalone Standard override also explicitly keeps Ralph enabled, unlike the new upstream default. It does not change the selected model or default preset. The old `.agent-presets/research` directory is not a registration mechanism in this DSH version.
 
 The host row retains id `aris-skills` for compatibility with profile patch targets, but its default module mounts only the runtime. It exports `ARIS_REPO` when unset, projects Codex continuation metadata into tool content, and exposes the read-only `/aris` view. The skills module registers exactly the upstream **83** top-level bundles in the Research scope; Standard and host scopes cannot list or load them through this provider. The added upstream skill is `research-implement-feature`. This isolation is catalog scoping, not a security sandbox.
 
@@ -12,8 +12,8 @@ The Research configuration is an explicit snapshot, not dynamic Standard inherit
 
 ## Runtime dependencies
 
-- DSH, `dsh-skill-filesystem`, and `dsh-mcp-client`: peer-pinned to `0.2.0-rc.2`.
-- Node `^22.19.0 || >=24.0.0`; the checked host has Node 22.23.2 and pnpm 11.7.0.
+- DSH, `dsh-skill-filesystem`, and `dsh-mcp-client`: peer-pinned to `0.2.1-rc.2`.
+- Node `^22.19.0 || >=24.0.0`; the checked host has Node 22.23.2 and pnpm 11.28.5.
 - Python 3.9+ as `python3` on PATH; bridge uses only the standard library.
 - Codex on PATH, authenticated by the operator. Prior local release recorded 0.153.4; this resource upgrade does not execute Codex. No credentials were read and no paid reviewer request was run during this migration.
 

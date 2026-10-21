@@ -1,0 +1,116 @@
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,9 @@
++# Local Copilot usage board
++
++Version0.1.1 targets DSH0.2.1-rc.2. Keeps the existing quota/token aggregation and sidebar display; credentials and account state remain Host-owned.
++
++Changes: require the Host Connection authentication/same-origin check in addition to loopback restriction, exact GET/POST methods, and cap diagnostic request bytes before buffering (16KiB, rendered log text remains4000 characters). Routes are removed on disposal. These guards do not grant remote access or change quota/pricing data.
++
++`node --test test/*.test.mjs` validates rejection before network access, method guards and diagnostic bounds. Full sidebar assembly is checked separately with a synthetic loopback quota endpoint and synthetic key; no account credentials are required for that test.
++
++Install a pinned tarball and verify installed version/content. Source updates through a live link can reload the plugin: update only in the coordinated maintenance window. Preserve the existing gateway, account credential reference and usage state; do not publish their values.
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -24,3 +24,3 @@
+ export const name = 'copilot-board'
+-export const inject = ['webServer']
++export const inject = ['webServer', 'connection']
+ 
+@@ -252,2 +252,5 @@
+       if (!isLoopback(req)) return send(403, { ok: false, error: 'loopback only' })
++      const rejected = ctx.connection.requestRejection(req)
++      if (rejected !== undefined) return send(rejected, { ok: false, error: 'authenticated same-origin access required' })
++      if (req.method !== 'GET') return send(405, { ok: false, error: 'GET required' })
+       send(200, await cachedOverview())
+@@ -258,15 +261,22 @@
+     path: ERROR_ROUTE,
+-    handler: (req, res) => {
+-      if (!isLoopback(req)) {
+-        res.writeHead(403)
+-        return res.end()
+-      }
++    handler: async (req, res) => {
++      const deny = status => { res.writeHead(status); res.end() }
++      if (!isLoopback(req)) return deny(403)
++      const rejected = ctx.connection.requestRejection(req)
++      if (rejected !== undefined) return deny(rejected)
++      if (req.method !== 'POST') return deny(405)
+       const chunks = []
+-      req.on('data', (chunk) => chunks.push(chunk))
+-      req.on('end', () => {
+-        const text = Buffer.concat(chunks).toString('utf8').slice(0, 4000)
+-        logLine(text.replace(/\s+/g, ' '))
+-        res.writeHead(200, { 'content-type': 'application/json' })
+-        res.end('{"ok":true}')
+-      })
++      let bytes = 0
++      try {
++        for await (const chunk of req) {
++          const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
++          bytes += buffer.length
++          if (bytes > 16384) return deny(413)
++          chunks.push(buffer)
++        }
++      } catch { return deny(400) } // A client can abort an incomplete diagnostics body.
++      const text = Buffer.concat(chunks).toString('utf8').slice(0, 4000)
++      await logLine(text.replace(/\s+/g, ' '))
++      res.writeHead(200, { 'content-type': 'application/json' })
++      res.end('{"ok":true}')
+     },
+--- a/package.json
++++ b/package.json
+@@ -2,6 +2,6 @@
+   "name": "dsh-copilot-board",
+-  "version": "0.1.0",
++  "version": "0.1.1",
+   "private": true,
+   "type": "module",
+-  "description": "临时看板：在 DSH Web 侧边栏底部显示 Copilot 订阅额度的真实消耗与今日用量。",
++  "description": "\u4e34\u65f6\u770b\u677f\uff1a\u5728 DSH Web \u4fa7\u8fb9\u680f\u5e95\u90e8\u663e\u793a Copilot \u8ba2\u9605\u989d\u5ea6\u7684\u771f\u5b9e\u6d88\u8017\u4e0e\u4eca\u65e5\u7528\u91cf\u3002",
+   "main": "lib/index.js",
+@@ -14,3 +14,3 @@
+     "engines": {
+-      "dsh": ">=0.2.0-rc.1"
++      "dsh": ">=0.2.1-rc.2"
+     },
+@@ -26,3 +26,11 @@
+     }
+-  }
++  },
++  "scripts": {
++    "test": "node --test test/*.test.mjs"
++  },
++  "files": [
++    "lib",
++    "cordis.patch.yml",
++    "README.md"
++  ]
+ }
+--- /dev/null
++++ b/test/routes.test.mjs
+@@ -0,0 +1,24 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { Readable } from 'node:stream';
++import { apply, inject } from '../lib/index.js';
++function fixture(reject) {
++  const routes = new Map(); let disposed = false; let cleanup;
++  apply({ connection: { requestRejection: reject }, webServer: { register(row) { routes.set(row.path,row); return () => { disposed=true;routes.delete(row.path); }; } }, effect(fn) { cleanup=fn(); } });
++  return { routes, dispose(){cleanup();return disposed;} };
++}
++function response(){return {status:null,body:null,writeHead(s){this.status=s;},end(b){this.body=b;}};}
++function request(method, chunks=[]){const r=Readable.from(chunks);r.method=method;r.socket={remoteAddress:'127.0.0.1'};r.headers={};return r;}
++test('host waits for authentication owner and refuses unauthenticated routes before network/body work',async()=>{
++ assert.deepEqual(inject,['webServer','connection']);const f=fixture(()=>401);
++ for(const path of ['/api/copilot-board/overview','/api/copilot-board/error']){const res=response();await f.routes.get(path).handler(request(path.endsWith('overview')?'GET':'POST'),res);assert.equal(res.status,401);}
++ assert.equal(f.dispose(),true);assert.equal(f.routes.size,0);
++});
++test('routes retain loopback restriction and require their exact methods',async()=>{
++ const f=fixture(()=>undefined);
++ for(const [path,method] of [['/api/copilot-board/overview','POST'],['/api/copilot-board/error','GET']]){const res=response();await f.routes.get(path).handler(request(method),res);assert.equal(res.status,405);}
++ const remote=request('GET');remote.socket.remoteAddress='203.0.113.5';const res=response();await f.routes.get('/api/copilot-board/overview').handler(remote,res);assert.equal(res.status,403);f.dispose();
++});
++test('diagnostic body is bounded before accumulating the oversized chunk',async()=>{
++ const f=fixture(()=>undefined),res=response();await f.routes.get('/api/copilot-board/error').handler(request('POST',[Buffer.alloc(16385)]),res);assert.equal(res.status,413);f.dispose();
++});

@@ -1,6 +1,6 @@
 # ARIS 本地隔离发行版
 
-`0.1.1-local.3` 面向 DSH `0.2.0-rc.2`，保留 npm `dsh-aris@0.1.1` runtime/Codex exec 桥，资源固定上游提交 `2132036060e03e8d0df69a4b21e5971819c0c2d6`，同时保留本机 runtime-only / Research-only 定制。详见 [LOCAL-CHANGES.md](LOCAL-CHANGES.md) 与 [English](README.md)。
+`0.1.1-local.4` 面向 DSH `0.2.1-rc.2`，保留 npm `dsh-aris@0.1.1` runtime/Codex exec 桥，资源固定上游提交 `2132036060e03e8d0df69a4b21e5971819c0c2d6`，同时保留本机 runtime-only / Research-only 定制。详见 [LOCAL-CHANGES.md](LOCAL-CHANGES.md) 与 [English](README.md)。
 
 - 默认入口只提供 `ARIS_REPO`、Codex continuation 元信息与只读 ARIS 面板；不会在宿主注册科研技能。
 - Research 的稳定 id 为 `research`。通过包内 `presets/research.patch.yml` 的 `@deepseek-ai/dsh-agent-preset` 声明注册，不再扫描旧 `.agent-presets` 目录。

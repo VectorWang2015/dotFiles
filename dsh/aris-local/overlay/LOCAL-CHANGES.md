@@ -1,6 +1,8 @@
 # Local ARIS upgrade record
 
-Version: `0.1.1-local.3`; target DSH: `0.2.0-rc.2` (`639ed015397290b3745d163aafe02ffee4aa3f84`).
+Version: `0.1.1-local.4`; target DSH: `0.2.1-rc.2` (`687f282e8625c6b8d11ff58211a90524be2e4317`).
+
+This compatibility release keeps all 83 skill/resource files and runtime/bridge/client code byte-identical to local.3. It rebuilds the explicit Research definition from the new Standard, retains the local compaction policy, and explicitly adds the still-supported Ralph tool that is now optional upstream. Exact target peers and 38 offline tests are updated. The older resource-upgrade record below is historical.
 
 ## Inputs and merge decisions
 

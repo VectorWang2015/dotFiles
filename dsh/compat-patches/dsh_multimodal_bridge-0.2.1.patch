@@ -1,0 +1,117 @@
+--- a/package.json
++++ b/package.json
+@@ -2,3 +2,3 @@
+   "name": "dsh-wechat-multimodal-local",
+-  "version": "1.0.0",
++  "version": "1.0.1",
+   "private": true,
+@@ -6,6 +6,34 @@
+   "main": "./index.mjs",
+-  "exports": { ".": "./index.mjs", "./policy": "./policy.mjs", "./persona": "./persona.mjs", "./package.json": "./package.json" },
+-  "files": ["index.mjs", "policy.mjs", "persona.mjs", "core.mjs", "images.mjs", "history.mjs", "migrate.mjs", "news_tools.mjs", "news_backend.mjs", "trendradar.mjs", "cordis.patch.yml", "README.md", "test"],
+-  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
+-  "scripts": { "test": "node --test test/*.test.mjs" }
++  "exports": {
++    ".": "./index.mjs",
++    "./policy": "./policy.mjs",
++    "./persona": "./persona.mjs",
++    "./package.json": "./package.json"
++  },
++  "files": [
++    "index.mjs",
++    "policy.mjs",
++    "persona.mjs",
++    "core.mjs",
++    "images.mjs",
++    "history.mjs",
++    "migrate.mjs",
++    "news_tools.mjs",
++    "news_backend.mjs",
++    "trendradar.mjs",
++    "cordis.patch.yml",
++    "README.md",
++    "test"
++  ],
++  "dsh": {
++    "bundle": {
++      "patch": "./cordis.patch.yml"
++    },
++    "engines": {
++      "dsh": "0.2.1-rc.2"
++    }
++  },
++  "scripts": {
++    "test": "node --test test/*.test.mjs"
++  }
+ }
+--- a/test/clear-images.test.mjs
++++ b/test/clear-images.test.mjs
+@@ -1 +1,2 @@
++import { target } from './target-core.mjs';
+ import test from 'node:test';
+@@ -4,3 +5,3 @@
+ import { recordImageMode, recordImages, imageProjection, pruneHistory, assertRequestImages, MODE_EVENT } from '../history.mjs';
+-import { Session } from '/home/vectorwang/Workspace/deepseek-harness-0.2.0-rc.2/packages/core/session/lib/types/index.js';
++const { Session } = await target('packages/core/session/lib/types/index.js');
+ const sid = 'wechat-chatbot-multimodal-clear-test';
+--- a/test/cold-persistence.test.mjs
++++ b/test/cold-persistence.test.mjs
+@@ -1,7 +1,8 @@
++import { target } from './target-core.mjs';
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
+-import { Session, KNOWN_SESSION_EVENT_TYPES } from '/home/vectorwang/Workspace/deepseek-harness-0.2.0-rc.2/packages/core/session/lib/types/index.js';
+-import { validateStoredEvents } from '/home/vectorwang/Workspace/deepseek-harness-0.2.0-rc.2/packages/session/session-persistence/lib/types/storage-contract.js';
+-import { toHeaderLine, eventLines, scanLog } from '/home/vectorwang/Workspace/deepseek-harness-0.2.0-rc.2/packages/session/session-persistence-jsonl/lib/types/format.js';
+-import { imageOffloadProjection } from '/home/vectorwang/Workspace/deepseek-harness-0.2.0-rc.2/packages/compaction/compaction-image-offload/lib/types/projection.js';
++const { Session, KNOWN_SESSION_EVENT_TYPES } = await target('packages/core/session/lib/types/index.js');
++const { validateStoredEvents } = await target('packages/session/session-persistence/lib/types/storage-contract.js');
++const { toHeaderLine, eventLines, scanLog } = await target('packages/session/session-persistence-jsonl/lib/types/format.js');
++const { imageOffloadProjection } = await target('packages/compaction/compaction-image-offload/lib/types/projection.js');
+ import { generateInput, finalResponse } from '../core.mjs';
+--- a/test/dsh-contract.test.mjs
++++ b/test/dsh-contract.test.mjs
+@@ -2,4 +2,2 @@
+ import assert from 'node:assert/strict';
+-import { pathToFileURL } from 'node:url';
+-import { resolve } from 'node:path';
+ import { generateInput } from '../core.mjs';
+@@ -8,4 +6,4 @@
+ // Uses exported compiled Session values from the inspected checkout, never edits it.
+-const checkout = process.env.DSH_CHECKOUT ?? '/home/vectorwang/Workspace/deepseek-harness-0.2.0-rc.2';
+-const { Session, foldSurface } = await import(pathToFileURL(resolve(checkout, 'packages/core/session/lib/types/index.js')).href);
++import { target } from './target-core.mjs';
++const { Session, foldSurface } = await target('packages/core/session/lib/types/index.js');
+ test('real exported DSH Session append/projection/derive/restore contract retains only recent images', () => {
+--- a/test/persona.test.mjs
++++ b/test/persona.test.mjs
+@@ -1 +1,2 @@
++import { target } from './target-core.mjs';
+ import test from 'node:test';
+@@ -7,4 +8,4 @@
+ import { imageProjection, recordImages, pruneHistory, assertRequestImages, WINDOW_MS } from '../history.mjs';
+-import { Session } from '/home/vectorwang/Workspace/deepseek-harness-0.2.0-rc.2/packages/core/session/lib/types/index.js';
+-import { renderPrompt } from '/home/vectorwang/Workspace/deepseek-harness-0.2.0-rc.2/packages/core/system-prompt/lib/types/index.js';
++const { Session } = await target('packages/core/session/lib/types/index.js');
++const { renderPrompt } = await target('packages/core/system-prompt/lib/types/index.js');
+ test('fixed persona provider rereads per assemble with stable literal prefix and no variable interpolation', () => {
+--- a/test/stable-images.test.mjs
++++ b/test/stable-images.test.mjs
+@@ -1,4 +1,5 @@
++import { target } from './target-core.mjs';
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
+-import { Session } from '/home/vectorwang/Workspace/deepseek-harness-0.2.0-rc.2/packages/core/session/lib/types/index.js';
++const { Session } = await target('packages/core/session/lib/types/index.js');
+ import { generateInput } from '../core.mjs';
+--- /dev/null
++++ b/test/target-core.mjs
+@@ -0,0 +1,8 @@
++// Tests must exercise the target checkout, never silently fall back to production.
++import { readFileSync } from 'node:fs';
++import { resolve } from 'node:path';
++import { pathToFileURL } from 'node:url';
++export const checkout = resolve(process.env.DSH_CHECKOUT ?? '/home/vectorwang/Workspace/deepseek-harness-0.2.1-rc.2');
++const version = JSON.parse(readFileSync(resolve(checkout, 'package.json'), 'utf8')).version;
++if (version !== '0.2.1-rc.2') throw new Error(`Expected target DSH 0.2.1-rc.2, got ${version}`);
++export const target = relative => import(pathToFileURL(resolve(checkout, relative)).href);
