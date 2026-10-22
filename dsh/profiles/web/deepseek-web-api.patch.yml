@@ -1,0 +1,12 @@
+# Merge these rows into the Web profile cordis.patch.yml.
+# Tested with the official paid Search and Fetch APIs; no literal credentials.
+- id: web
+  config:
+    searchProvider: deepseek-search-api
+    fetchProvider: deepseek-fetch-api
+- id: web-deepseek-api
+  config:
+    apiKeyEnv: DEEPSEEK_API_KEY
+    baseURL: https://api.deepseek.com/v1/tools
+    count: 10
+    sendOriginalQuestion: false
