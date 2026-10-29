@@ -1,0 +1,16 @@
+{
+  "petManifestVersion": 2,
+  "id": "duota",
+  "displayName": "舵獭",
+  "description": "航海主题的舵手水獭，掌舵修船的好伙伴。",
+  "license": "Proprietary",
+  "renderer": "sprite2d",
+  "sprite2d": {
+    "spritesheetPath": "spritesheet.webp",
+    "frames": [6, 6, 8, 4, 5, 8, 6, 6, 6],
+    "tracks": {
+      "running-right": { "durations": [200, 200, 200, 200, 200, 200] },
+      "running": { "durations": [200, 200, 200, 200, 200, 200] }
+    }
+  }
+}

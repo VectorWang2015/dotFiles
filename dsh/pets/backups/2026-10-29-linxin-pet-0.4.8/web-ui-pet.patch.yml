@@ -1,0 +1,8 @@
+- id: web-ui-pet
+  name: '@linxin666/dsh-pet'
+  config:
+    visible: true
+    size: 64
+    right: 170
+    bottom: 480
+    petId: jingzhenen

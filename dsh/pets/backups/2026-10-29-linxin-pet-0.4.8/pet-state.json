@@ -1,0 +1,28 @@
+{
+  "petId": "jingzhenen",
+  "names": {},
+  "skins": {},
+  "affinity": {
+    "points": 6876,
+    "lastPetAt": 1793286632665,
+    "lastFeedAt": 1793286635124,
+    "pets": 414,
+    "feeds": 291,
+    "petRejects": 20,
+    "feedRejects": 14,
+    "turns": 5013
+  },
+  "treats": {
+    "treats": 19,
+    "lastTreatGrantAt": 1793280911621,
+    "turnsAtLastTreatGrant": 5001
+  },
+  "display": {
+    "visible": true,
+    "size": 64,
+    "right": 170,
+    "bottom": 480,
+    "bubbleScale": 1
+  },
+  "gameplay": {}
+}

@@ -1,0 +1,21 @@
+{
+  "capturedAt": "2026-10-29T23:31:20+08:00",
+  "plugin": {
+    "name": "@linxin666/dsh-pet",
+    "version": "0.4.8",
+    "providedBy": "@linxin666/dsh-web-all@0.4.8",
+    "entryId": "web-ui-pet"
+  },
+  "sourceState": "$DSH_HOME/pet.json",
+  "sourceAssets": "${CODEX_HOME:-~/.codex}/pets/{jingzhenen,duota}/",
+  "petStateSha256": "f8186961cb1cbd8bc587a93cebf69e53801487b26afd771bfed37f58ebf1f715",
+  "assetSha256": {
+    "jingzhenen/pet.json": "7aa3a988ef0557d64e5236d16811af0aea977cda784d80b614db104ea295baa6",
+    "jingzhenen/spritesheet.webp": "7513e3f416b1c6b67b1d802ee8f4d82ac165884fe1a3f98db6f398a46747b9b1",
+    "duota/pet.json": "523d5ca48a1d42121475be9461bdbb73e45eb7ebd4769f5760f28e5763b76850",
+    "duota/spritesheet.webp": "bca820d8fc2a5ee8d66190bc8d48967f06cb1ae34ce4e021d392ec0e5bb1fa59"
+  },
+  "containsCredentials": false,
+  "containsDshSessions": false,
+  "note": "Live snapshot before replacement; old plugin remains running until scheduled stop. Final post-stop state is captured locally, not pushed automatically."
+}
