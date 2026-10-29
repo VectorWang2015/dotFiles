@@ -1,0 +1,31 @@
+{
+  "name": "dsh-pet",
+  "version": "0.3.8",
+  "repository": "https://github.com/PC2005-cloud/dsh-pet",
+  "registry": "https://registry.npmjs.org/dsh-pet",
+  "tarballBytes": 62783419,
+  "tarballSha256": "475316d988c8acd48237ed10514e73b331b852f952ff11659f4250c439f85a27",
+  "npmIntegrity": "sha512-E1ymE0/a1k2MJco2JDcWeqwMttjWNZWt5yMEN+jjKwWD+H2XT5OMUDmazMLhNnN5grmL9+lbE94iyEQMn5p+JA==",
+  "targetDshVersion": "0.2.1-rc.2",
+  "scheduledStop": "2026-10-30T00:28:00+08:00",
+  "autoRestart": false,
+  "initialSettings": {
+    "display": "web",
+    "whisperEnabled": false,
+    "balanceEnabled": false,
+    "workStatusEnabled": true,
+    "notificationsEnabled": false
+  },
+  "checksPassed": {
+    "npmTarballIntegrity": true,
+    "hostImportWithoutApply": true,
+    "actualDshCompatibilityAdmission": true,
+    "clientModuleRegistrationWithoutFactory": true,
+    "webmHeaderCount": 106,
+    "profileYamlAndLockConsistency": true,
+    "isolatedOfflineFrozenLockfile": true,
+    "temporaryMigrationTests": 19
+  },
+  "liveActivationVerified": false,
+  "note": "Prepared without changing or restarting the running DSH host. Actual browser rendering and runtime integration require the user's next startup. Own runtime dependencies are isolated; shared DSH/React peers reuse the current host checkout."
+}
